@@ -1,2 +1,3 @@
 # robokit
-A Brain Kit to automate your Nodebot
+
+Robot brain tools to automate your nodebot
