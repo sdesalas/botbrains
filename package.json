@@ -1,5 +1,5 @@
 {
-  "name": "robokit",
+  "name": "botbrain",
   "version": "0.0.1",
   "description": "Robot brain tools to automate your nodebot",
   "main": "index.js",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sdesalas/robokit.git"
+    "url": "git+https://github.com/sdesalas/botbrain.git"
   },
   "keywords": [
     "robot",
@@ -22,7 +22,7 @@
   "author": "Steven de Salas",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/sdesalas/robokit/issues"
+    "url": "https://github.com/sdesalas/botbrain/issues"
   },
-  "homepage": "https://github.com/sdesalas/robokit#readme"
+  "homepage": "https://github.com/sdesalas/botbrain#readme"
 }
