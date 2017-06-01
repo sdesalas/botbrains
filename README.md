@@ -10,7 +10,7 @@ You can watch signals travel across your nodebot neural network in 3D, as well a
 
 ## Quick start
 
-You need nodejs installed, version 6 or above.
+You need [NodeJS](https://nodejs.org/en/download/) installed, version 6 or above.
 
 ```sh
 $ mkdir my-bot && cd my-bot
