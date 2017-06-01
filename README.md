@@ -75,7 +75,7 @@ board.on("ready", function() {
 
     // DISPLAY VIA LOCAHOST
 
-    var display = botbrain.Toolkit.Visualise(network);
+    var display = botbrain.Toolkit.visualise(network);
 
     console.log("Your brain is ready for interaction. Please open http://localhost:" + display.port);
 
