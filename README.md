@@ -66,9 +66,11 @@ board.on("ready", function() {
         switch(data) {
             case 1: // Forward
                 return this.ccw();
-    		case 2: // Backward
+
+            case 2: // Backward
                 return this.cw();
- 			default: // Or Nothing
+
+            default: // Or Nothing
                 return;
     	}
     }
