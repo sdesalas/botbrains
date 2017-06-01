@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<style>
+			body { background-color: #000; margin: 0; overflow: hidden; }
+		</style>
+	</head>
+	<body>
+		<script src="./3d-force-graph.min.js"></script>
+        <script src="./NeuralNetwork.js"></script>
+        <script src="./socket.io.js"></script>
+		<script>
+
+            let graphData, socket = io();
+
+            socket.on('connection', data => {
+				console.log('connection', data);
+
+				if (data) {
+					let network = new botbrain.NeuralNetwork(data);
+					let nodes = network.nodes.map(node => ({ id: node.id }));
+					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.t).map(s => ({ source: n.id, target: s.t.id }))), []);
+
+					const Graph = ForceGraph3D()(document.body);
+
+					Graph
+						.warmupTicks(20)
+						.cooldownTicks(150)
+						.sphereColor(0x8fe7ff)
+						//.highlightItems(true)
+						.forceEngine('ngraph')
+						.graphData({ nodes, links })
+						.onReady(graph => graphData = graph.graphData);
+
+					console.log({ graphData });
+				}
+
+            });
+
+			socket.on('fire', id => {
+				console.log('fire', id);
+				if (graphData) {
+					let node = graphData.nodes[id];
+					if (node && node.__sphere) {
+						let material = node.__sphere.material;
+						let oldColor = new THREE.Color(0x8fe7ff);
+						let fireColor = new THREE.Color(0xffffff);
+						material.color = fireColor;
+						material.opacity = 1;
+						setTimeout(() => {
+							material.color = oldColor;
+							material.opacity = 0.6;
+						}, 600);
+					}
+				}
+			});
+
+		</script>
+	</body>
+</html>

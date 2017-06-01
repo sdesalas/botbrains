@@ -1,13 +1,17 @@
 {
   "name": "botbrain",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Robot brain tools to automate your nodebot",
   "main": "index.js",
+  "browser": "static/NeuralNetwork.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha",
+    "copy": "ncp node_modules/3d-force-graph/dist/3d-force-graph.min.js ./static && ncp node_modules/socket.io-client/socket.io.js ./static",
+    "bundle": "rollup -c && npm run copy",
+    "start": "node -e \"let bb = require('./'); let network = new bb.NeuralNetwork(100, 'tube'); bb.Toolkit.visualise(network); setInterval(() => network.nodes[Math.floor(Math.random() * 100)].fire(), 1000);\""
   },
-  "engines": { 
-    "node": ">6.0.0" 
+  "engines": {
+    "node": ">6.0.0"
   },
   "repository": {
     "type": "git",
@@ -24,5 +28,20 @@
   "bugs": {
     "url": "https://github.com/sdesalas/botbrain/issues"
   },
-  "homepage": "https://github.com/sdesalas/botbrain#readme"
+  "homepage": "https://github.com/sdesalas/botbrain#readme",
+  "dependencies": {
+    "node-static": "^0.7.9",
+    "socket.io": "1.4.8"
+  },
+  "devDependencies": {
+    "3d-force-graph": "git+https://github.com/sdesalas/3d-force-graph.git",
+    "assert-fuzzy": "^1.0.0",
+    "events": "^1.1.1",
+    "mocha": "^3.4.2",
+    "ncp": "^2.0.0",
+    "rollup": "^0.41.6",
+    "rollup-plugin-commonjs": "^8.0.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "uglify-js": "^3.0.15"
+  }
 }
