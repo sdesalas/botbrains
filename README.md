@@ -41,7 +41,7 @@ var board = new five.Board({port: process.argv[2] || "" });
 
 board.on("ready", function() {
 
-    var network = new brainbox.NeuralNetwork(32);
+    var network = new botbrain.NeuralNetwork(32);
 
     // PROXIMITY SENSOR INPUT
     var input = new five.Proximity({ pin: 10, freq: 200, controller: "HCSR04" });
