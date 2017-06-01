@@ -13,9 +13,9 @@ You can watch signals travel across your nodebot neural network in 3D, as well a
 You need nodejs installed, version 6 or above.
 
 ```
-mkdir my-bot && cd my-bot
-npm install botbrain
-npm start
+$ mkdir my-bot && cd my-bot
+$ npm install botbrain
+$ npm start
 ```
 
 The above will perform a quick test with a random visualization. For a full test you need to rig up a robot.
@@ -24,12 +24,12 @@ The above will perform a quick test with a random visualization. For a full test
 
 You should be adding this to an existing robot project such as [johnny-five](http://johnny-five.io/).
 
-Here is an example:
+Here is a longer example:
 
 ```
-mkdir my-bot && cd my-bot
-npm install johnny-five
-npm install botbrain
+$ mkdir my-bot && cd my-bot
+$ npm install johnny-five
+$ npm install botbrain
 ```
 
 ### robot.js
@@ -63,13 +63,13 @@ board.on("ready", function() {
     output2.on("data", move.bind(servo2, data));
 
     function move(data) {
-    	switch(data) {
-    		case 1: // Forward
-    			return this.ccw();
+        switch(data) {
+            case 1: // Forward
+                return this.ccw();
     		case 2: // Backward
- 				return this.cw();
+                return this.cw();
  			default: // Or Nothing
- 				return;
+                return;
     	}
     }
 
@@ -86,5 +86,5 @@ board.on("ready", function() {
 Then run it!
 
 ```
-node robot.js
+$ node robot.js
 ```
