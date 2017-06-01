@@ -12,7 +12,7 @@ You can watch signals travel across your nodebot neural network in 3D, as well a
 
 You need nodejs installed, version 6 or above.
 
-```
+```sh
 $ mkdir my-bot && cd my-bot
 $ npm install botbrain
 $ npm start
@@ -26,14 +26,14 @@ You should be adding this to an existing robot project such as [johnny-five](htt
 
 Here is a longer example:
 
-```
+```sh
 $ mkdir my-bot && cd my-bot
 $ npm install johnny-five
 $ npm install botbrain
 ```
 
 ### robot.js
-```
+```js
 var five = require("johnny-five");
 var botbrain = require("botbrain");
 
@@ -85,6 +85,6 @@ board.on("ready", function() {
 
 Then run it!
 
-```
+```sh
 $ node robot.js
 ```
