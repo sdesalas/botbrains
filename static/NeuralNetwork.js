@@ -416,25 +416,6 @@ class NetworkShaper {
 
 var NetworkShaper_1 = NetworkShaper;
 
-class Utils {
-
-    // Fast string hashing algorithm
-    // Converts string to int predictably
-    static hash(str){
-        var char, hash = 0;
-        if (!str) return hash;
-        for (var i = 0; i < str.length; i++) {
-            char = str.charCodeAt(i);
-            hash = ((hash<<5)-hash)+char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-        return hash;
-    }
-
-}
-
-var Utils_1 = Utils;
-
 const NETWORK_DEFAULT_SHAPE = 'sausage';
 const SYNAPSE_AVG_PER_NEURON = 4;
 const SIGNAL_MAX_FIRE_DELAY = 200;
@@ -442,6 +423,7 @@ const SIGNAL_RECOVERY_DELAY = 1250;
 const SIGNAL_FIRE_THRESHOLD = 0.3;
 const LEARNING_RATE = 0.3;
 const LEARNING_PERIOD = 60 * 1000;
+const MESSAGE_DEFAULT_SIZE = 10; // 10 bit messages by default (max 1024)
 
 class NeuralNetwork extends events {
 
@@ -460,7 +442,8 @@ class NeuralNetwork extends events {
         super();
         this.shape = shape || NETWORK_DEFAULT_SHAPE;
         this.nodes = [];
-        this.channels = [];
+        this.channels = []; // input sites
+        this.drains = []; // output sites
         if (typeof size === 'number') {
             // Initialize with size
             this.nodes = new Array(size)
@@ -469,11 +452,14 @@ class NeuralNetwork extends events {
         }
         else if (size && size.nodes && size.nodes instanceof Array) {
             // Initialize with exported network
-            this.nodes = size.nodes.map((n, i) => {
-                var neuron = new Neuron(n.s, n.id);
+            let network = size;
+            this.nodes = network.nodes.map((n, i) => {
+                let neuron = new Neuron(n.s, n.id);
                 neuron.synapses.forEach(s => s.i = s.t);
                 return neuron;
             });
+            this.channels = network.channels.slice();
+            this.drains = network.drains.slice();
         }
         // Extra initialization per neuron
         this.nodes.forEach(neuron => {
@@ -504,17 +490,18 @@ class NeuralNetwork extends events {
                     .map(s => Object({t: s.i, w: s.w}))
             })),
             // Clone array of arrays
-            channels: this.channels.map(channel => channel.slice())
+            channels: this.channels.map(i => i.slice()),
+            drains: this.drains.map(i => i.slice())
         }
     }
 
     // Reinforces synapses that fire recently
     // network.learn()
     learn(rate) {
-        var start = new Date().getTime() - LEARNING_PERIOD;
+        const start = new Date().getTime() - LEARNING_PERIOD;
         this.synapses
             .forEach(s => {
-                var recency = s.l - start;
+                const recency = s.l - start;
                 if (recency > 0) {
                     s.w += (recency / LEARNING_PERIOD) * (rate || LEARNING_RATE);
                     s.w = s.w < 0 ? 0 : s.w;
@@ -529,52 +516,67 @@ class NeuralNetwork extends events {
         this.learn(-1 * (rate || LEARNING_RATE));
     }
 
-    // Each channel defaults to 32 bits (neurons) to process
-    // network.channel() -> next available at 32 bits
-    // network.channel(16) -> next available at 16 bits
-    // network.channel(16, 2) -> slot 2 at 16 bits
-    // network.channel([2,3,4,5,6,7], 2) -> slot 2 with array of predefined nodes
-    channel(bits, index) {
-        var index = index || this.channels.length,
-            bits = typeof bits === 'number' ? bits : 32,
-            nodes = bits instanceof Array ? bits : undefined;
+    // Creates channel, defaulted to MESSAGE_DEFAULT_SIZE bits (neurons)
+    // network.channel() -> inward, next available
+    // network.channel(2) -> inward at slot 2 (ie, 3rd slot -> 0-indexed)
+    // network.channel(2, 16) -> inward, slot 2 at set size
+    // network.channel(2, 16, true) -> outward, slot 2 at set size
+    // network.channel(2, [2,3,4,5,6,7]) -> inward slot 2 with array of predefined nodes
+    channel(index, bits, outward) {
+        let channels = outward ? this.drains : this.channels;
+        index = index || channels.length;
+        bits = typeof bits === 'number' ? bits : MESSAGE_DEFAULT_SIZE;
+        let nodes = bits instanceof Array ? bits : undefined;
         if (!nodes) {
-            // Find starting point and add nodes to channel
-            var start = this.channels.reduce((a, c) => a + c.length, 0);
-            nodes = new Array(bits).fill().map((n, i) => start + i);
+            // Find starting/ending point and add nodes to channel
+            let startPos = channels.reduce((a, c) => a + c.length, 0);
+            let endPos = network.size - 1 - startPos;
+            nodes = new Array(bits).fill().map((n, i) => outward ? endPos - i : startPos + i);
         }
-        this.channels[index] = nodes;
+        channels[index] = nodes;
         return nodes;
     }
 
     // Input some data into the neural network
-    // network.input('hello')
-    input(data, channelIndex) {
-        var bytes,
-            nodes = this.channels[channelIndex || 0] || this.channel();
-        if (nodes && nodes.length) {
-            if (typeof data === 'number' && data.toString(2).length <= 32) {
-                bytes = data.toString(2).split('');
-            }
-            else {
-                if (typeof data !== 'string') {
-                    data = String(data);
-                }
-                bytes = Utils_1.hash(data).toString(2).split('');
-            }
-            while (bytes.length < 32) {
+    // network.input(71); -> input at main
+    // network.input(23, 1); -> input at 1 (2nd slot, 0-indexed)
+    input(data, index) {
+        let bytes,
+            inputNodes = this.channels[index || 0] || this.channel();
+        const max = Math.pow(2, MESSAGE_DEFAULT_SIZE) - 1;
+        if (typeof data === 'number' && inputNodes && inputNodes.length) {
+            data = (data > max) ? max : (data < 0) ? 0 : data;
+            bytes = data.toString(2).split('');
+            while (bytes.length < inputNodes.length) {
                 bytes.unshift('0');
             }
             // Apply bits in data to each neuron listed under inputs
             // 1 = fire neuron, 0 = skip
             bytes.forEach((byte, i) => {
-                var node = this.nodes[nodes[i]];
+                let node = this.nodes[inputNodes[i]];
                 if (byte === '1' && node) {
                     node.fire();
                 }
             });
             return bytes.join('');
         }
+    }
+
+    // Registers an output drain and returns event emitter
+    // let observable = network.output(4); -> 4 bit listener
+    // observable.on('data', data => console.log(data)); -> fires when there is data
+    // observable.on('change', data => consoe.log(data)); -> fires when there is a change
+    output(bits) {
+        let observable = new events();
+        let index = this.drains.length,
+            outputNodes = this.channel(index, bits, true);
+        this.on('fire', id => {
+            if (outputNodes.indexOf(id)) {
+                let data = outputNodes.map(i => this.nodes[i] && this.nodes[i].isfiring ? 1 : 0);
+                observable.emit('data', data);
+            }
+        });
+        return observable;
     }
 
     // Fire a neuron, used for testing and visualization
@@ -596,7 +598,7 @@ class NeuralNetwork extends events {
     }
 
     get strength() {
-        var synapses = this.synapses;
+        let synapses = this.synapses;
         return synapses.map(s => s.w).reduce((a,b) => a+b, 0) / synapses.length;
     }
 
@@ -617,10 +619,10 @@ class Neuron extends events {
     // Generates a random neuron
     static random(position, networkSize, shape) {
         // Number of synapses are random based on average
-        var synapses = new Array(Random_1.integer(1, SYNAPSE_AVG_PER_NEURON * 2 - 1))
+        let synapses = new Array(Random_1.integer(1, SYNAPSE_AVG_PER_NEURON * 2 - 1))
             .fill()
             .map(() => {
-                var shaper = NetworkShaper_1[shape],
+                let shaper = NetworkShaper_1[shape],
                     i = shaper(position, networkSize),
                     w = Math.pow(Math.random(), 3);
 

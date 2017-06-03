@@ -8,7 +8,7 @@
 			nav:hover { opacity: 1; }
 			#left { left: 40px; }
 			#right { right: 40px; }
-			a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 28px; }
+			a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 18px; }
 			#left .fa { color: green; display: block; }
 			#right .fa { color: red; display: block; }
 		</style>
@@ -18,8 +18,8 @@
         <script src="./NeuralNetwork.js"></script>
 	</head>
 	<body>
-		<nav id="left"><a href="javascript:;"><i class="fa fa-check fa-6x"></i>GOOD!</a></nav>
-		<nav id="right"><a href="javascript:;"><i class="fa fa-times fa-6x"></i>BAD!</a></nav>
+		<nav id="left"><a href="javascript:;"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a></nav>
+		<nav id="right"><a href="javascript:;"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a></nav>
 		<div id="main"></div>
 		<script>
 
@@ -30,8 +30,11 @@
 
 				if (data) {
 					let network = new botbrain.NeuralNetwork(data);
-					let nodes = network.nodes.map(node => ({ id: node.id }));
+					let inputNodes = network.channels.reduce((acc, c) => acc.concat(c), []);
+					let outputNodes = network.drains.reduce((acc, c) => acc.concat(c), []);
+					let nodes = network.nodes.map(node => ({ id: node.id, color: outputNodes.indexOf(node.id) + 1 ? '#ff0000' : (inputNodes.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
 					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.t).map(s => ({ source: n.id, target: s.t.id }))), []);
+					console.log({ inputNodes })
 
 					const Graph = ForceGraph3D()(document.getElementById('main'));
 
@@ -55,7 +58,7 @@
 					let node = graphData.nodes[id];
 					if (node && node.__sphere) {
 						let material = node.__sphere.material;
-						let oldColor = new THREE.Color(0x8fe7ff);
+						let oldColor = material.color;
 						let fireColor = new THREE.Color(0xffffff);
 						material.color = fireColor;
 						material.opacity = 1;
