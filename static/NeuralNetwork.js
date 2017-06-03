@@ -418,11 +418,14 @@ var NetworkShaper_1 = NetworkShaper;
 
 const NETWORK_DEFAULT_SHAPE = 'sausage';
 const SYNAPSE_AVG_PER_NEURON = 4;
+
 const SIGNAL_MAX_FIRE_DELAY = 200;
 const SIGNAL_RECOVERY_DELAY = 1250;
 const SIGNAL_FIRE_THRESHOLD = 0.3;
+
 const LEARNING_RATE = 0.3;
 const LEARNING_PERIOD = 60 * 1000;
+
 const MESSAGE_DEFAULT_SIZE = 10; // 10 bit messages by default (max 1024)
 
 class NeuralNetwork extends events {
