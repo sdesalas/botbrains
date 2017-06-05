@@ -70,7 +70,9 @@ board.on("ready", function() {
             case 2: // Backward
                 return this.cw();
 
-            default: // Or Nothing
+            case 3: // Stop
+                this.left.to(this.lstop || 90);
+                this.right.to(this.rstop || 90);
                 return;
     	}
     }

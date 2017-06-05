@@ -18,23 +18,23 @@
         <script src="./NeuralNetwork.js"></script>
 	</head>
 	<body>
-		<nav id="left"><a href="javascript:;"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a></nav>
-		<nav id="right"><a href="javascript:;"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a></nav>
+		<nav id="left"><a href="javascript:;" onclick="if (socket) { socket.emit('learn'); }"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a></nav>
+		<nav id="right"><a href="javascript:;" onclick="if (socket) { socket.emit('unlearn'); }"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a></nav>
 		<div id="main"></div>
 		<script>
 
-            let graphData, socket = io();
+            let graphData, network, socket = io();
 
             socket.on('connection', data => {
 				console.log('connection', data);
 
 				if (data) {
-					let network = new botbrain.NeuralNetwork(data);
+					network = new botbrain.NeuralNetwork(data);
 					let inputNodes = network.channels.reduce((acc, c) => acc.concat(c), []);
 					let outputNodes = network.drains.reduce((acc, c) => acc.concat(c), []);
 					let nodes = network.nodes.map(node => ({ id: node.id, color: outputNodes.indexOf(node.id) + 1 ? '#ff0000' : (inputNodes.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
-					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.t).map(s => ({ source: n.id, target: s.t.id }))), []);
-					console.log({ inputNodes })
+					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.t).map(s => ({ source: n.id, target: s.t.id, opacity: s.w }))), []);
+					console.log({ network, inputNodes })
 
 					const Graph = ForceGraph3D()(document.getElementById('main'));
 
@@ -45,7 +45,8 @@
 						//.highlightItems(true)
 						.forceEngine('ngraph')
 						.graphData({ nodes, links })
-						.onReady(graph => graphData = graph.graphData);
+						.onReady(graph => graphData = graph.graphData)
+						.onClick(x => console.log({x}));
 
 					console.log({ graphData });
 				}
@@ -53,7 +54,7 @@
             });
 
 			socket.on('fire', id => {
-				console.log('fire', id);
+				//console.log('fire', id);
 				if (graphData) {
 					let node = graphData.nodes[id];
 					if (node && node.__sphere) {
@@ -67,6 +68,15 @@
 							material.opacity = 0.6;
 						}, 600);
 					}
+				}
+			});
+
+			socket.on('update', network => {
+				// Update synapses
+				console.log('update', { network, graphData });
+				if (network && graphData) {
+					let lines = graphData.links.map(l => l.__line);
+					network.synapses.forEach((s, i) => lines[i].opacity = s.w);
 				}
 			});
 

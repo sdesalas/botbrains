@@ -15,6 +15,15 @@ class Utils {
         return hash;
     }
 
+    // Constrains a number between two others
+    static constrain(n, from, to) {
+        if (!isNaN(n)) {
+            n = n < from ? from : n;
+            n = n > to ? to : n;
+        }
+        return n;
+    }
+
 }
 
 module.exports = Utils;
