@@ -1,10 +1,14 @@
 # Bot Brain
 
-Robot brain tools to automate your nodebot
+BotBrain is a set of robot brain development tools to automate an arduino-based robot. 
 
-## Interact with your bot brain in 3D.
+Its been built as part of an educational workshop on artificial learning specifically for [International Nodebots Day](https://www.eventbrite.com.au/e/international-nodebots-day-melbourne-2017-tickets-34845310261). 
 
-You can watch signals travel across your robot's neural network in 3D, as well as train it with positive and negative reinforcement.
+This material here is very basic and aimed more at communicating the core concept of a neural network through practice than dealing with all the theoretical stuff that is available out there.
+
+## Interact with your robot brain in 3D.
+
+The key aspect of BotBrain is the ability to watch signals travel across your robot's neural network in 3D, and train it with positive and negative reinforcement.
 
 ![brain-3d.png](brain-3d.gif)
 
