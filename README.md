@@ -6,7 +6,7 @@ Its been built as part of an educational workshop on artificial learning specifi
 
 This material here is very basic and aimed more at communicating the core concept of a neural network through practice than dealing with all the theoretical stuff that is available out there.
 
-## Interact with your robot brain in 3D.
+## Interact with your robot's brain in 3D.
 
 The key aspect of BotBrain is the ability to watch signals travel across your robot's neural network in 3D, and train it with positive and negative reinforcement.
 
