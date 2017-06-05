@@ -1,6 +1,6 @@
 # Bot Brain
 
-BotBrain is a set of robot brain development tools to automate an arduino-based robot. 
+BotBrain is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot. 
 
 Its been built as part of an educational workshop on artificial learning specifically for [International Nodebots Day](https://www.eventbrite.com.au/e/international-nodebots-day-melbourne-2017-tickets-34845310261). 
 
