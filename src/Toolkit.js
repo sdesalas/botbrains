@@ -5,6 +5,7 @@ const http = require('http');
 const qs = require('querystring');
 const nodeStatic = require('node-static');
 const io = require('socket.io');
+const os = require('os');
 
 class Toolkit {
 
@@ -25,7 +26,6 @@ class Toolkit {
     }
 
     static connection(socket) {
-        console.log('Toolkit.connection()');
         socket.emit('connection', this.network && this.network.export());
         this.network.on('fire', (id, potential) => socket.emit('fire', id) && this.verbose && console.log(`firing ${id} with potential ${potential}`));
         socket.on('learn', () => socket.emit('update', this.network.learn().export()) && this.verbose && console.log('learn', this.network.synapses[0].w));
@@ -36,6 +36,21 @@ class Toolkit {
         if (network) {
             this.network = network;
             return this.serve(port || 8811);
+        }
+    }
+
+    static getIPv4() {
+        let ifname, ifaces = os.networkInterfaces();
+        for (ifname in ifaces) {
+            if (ifaces.hasOwnProperty(ifname)) {
+                let arr = ifaces[ifname], n = arr && arr.length;
+                for (let n = 0; n < arr.length; n++) {
+                    let iface = arr[n];
+                    if (iface.family === 'IPv4' && iface.internal === false) {
+                        return iface.address;
+                    }
+                }
+            }
         }
     }
 
