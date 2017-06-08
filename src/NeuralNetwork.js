@@ -114,22 +114,34 @@ class NeuralNetwork extends EventEmitter {
         }
     }
 
+    get learningPeriod() {
+        const now = new Date().getTime();
+        let lp = now - this.lastTrained;
+        if (!lp || lp > this.opts.LEARNING_PERIOD) {
+            lp = this.opts.LEARNING_PERIOD;
+        }
+        return lp;
+    }
+
     // Reinforces synapses that fired recently
     // network.learn()
     learn(rate) {
         const opts = this.opts;
-        const cutoff = new Date().getTime() - opts.LEARNING_PERIOD;
+        const now = new Date().getTime();
+        const learningPeriod = this.learningPeriod;
+        const cutoff = now - learningPeriod;
         this.synapses.forEach(s => {
             // Strengthen / weaken synapses that fired recently
             // in proportion to how recently they fired
             let recency = s.l - cutoff;
             // If synapse hasnt fired then use inverse.
             if (recency > 0) {
-                s.w += (recency / opts.LEARNING_PERIOD) * (rate || opts.LEARNING_RATE);
+                s.w += (recency / learningPeriod) * (rate || opts.LEARNING_RATE);
                 // Make sure weight is always between 0 and 1
                 s.w = Utils.constrain(s.w, 0, 1);
             }
         });
+        this.lastTrained = new Date().getTime();
         return this;
     }
 
@@ -138,20 +150,21 @@ class NeuralNetwork extends EventEmitter {
     // network.unlearn()
     unlearn(rate) {
         const opts = this.opts;
-        const cutoff = new Date().getTime() -  opts.LEARNING_PERIOD * 2;
+        const now = new Date().getTime();
+        const cutoff = now - this.learningPeriod * 2;
         // When something bad has happened, the lack of synapses
         // firing is also part of the problem, so we can
         // reactivate old/unused synapses for re-use.
         this.synapses
             .filter(s => !s.l || s.l < cutoff) // not used or less than the cutoff
-            .filter(s => Math.random() > 0.25) // random 25% only
+            .filter(s => Math.random() > 0.10) // random 10% only
             .forEach(s => {
                 // Strengthen by 10% of learning rate
-                s.w += 0.1 * opts.LEARNING_RATE;
+                s.w += (rate || opts.LEARNING_RATE) * 0.1;
                 s.w = Utils.constrain(s.w, 0, 1);
             });
         // Also apply normal unlearning in recent past
-        return this.learn(-1 * (rate || this.opts.LEARNING_RATE));
+        return this.learn(-1 * (rate || opts.LEARNING_RATE));
     }
 
     // Creates channel, defaulted to MESSAGE_SIZE neurons (bits)

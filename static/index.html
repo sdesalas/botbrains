@@ -71,12 +71,13 @@
 				}
 			});
 
-			socket.on('update', network => {
+			socket.on('update', data => {
 				// Update synapses
-				console.log('update', { network, graphData });
-				if (network && graphData) {
+				console.log('update', { data, graphData });
+				if (data && graphData) {
 					let lines = graphData.links.map(l => l.__line);
-					network.synapses.forEach((s, i) => lines[i].opacity = s.w);
+					let newNetwork = new botbrain.NeuralNetwork(data);
+					newNetwork.synapses.forEach((s, i) => lines[i].material.opacity = s.w);
 				}
 			});
 
