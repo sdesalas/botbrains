@@ -1,6 +1,6 @@
 {
   "name": "botbrain",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Robot brain tools to automate your nodebot",
   "main": "index.js",
   "browser": "static/NeuralNetwork.js",
