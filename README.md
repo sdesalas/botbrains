@@ -1,8 +1,8 @@
 # Bot Brain
 
-BotBrain is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot. 
+BotBrain is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot.
 
-Its been built as part of an educational workshop on artificial learning specifically for [International Nodebots Day](https://www.eventbrite.com.au/e/international-nodebots-day-melbourne-2017-tickets-34845310261). 
+Its been built as part of an educational workshop on artificial learning specifically for [International Nodebots Day](https://www.eventbrite.com.au/e/international-nodebots-day-melbourne-2017-tickets-34845310261).
 
 This material here is very basic and aimed more at communicating the core concept of a neural network through practice than dealing with all the theoretical stuff that is available out there.
 
@@ -48,12 +48,12 @@ board.on("ready", function() {
     var network = new botbrain.NeuralNetwork(32);
 
     // PROXIMITY SENSOR INPUT
-    var input = new five.Proximity({ pin: 10, freq: 200, controller: "HCSR04" });
-    input.on("change", () => network.input(input.value, 0));
+    var proximity = new five.Sensor({ pin: "A6", freq: 200 });
+    proximity.on("change", () => network.input(proximity.value));
 
-    // WHEEL OUTPUT
-    var servo1 = new five.Servo.Continuous(3);
-    var servo2 = new five.Servo.Continuous(5);
+    // MOTOR OUTPUT
+    var motor_l = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
+    var motor_r = new five.Motor({ pins: { pwm: 9, dir: 8, }, invertPWM: true, });
 
     // Reactions to data can be arbitrary.
     // It doesnt matter what gets mapped to what since
@@ -63,30 +63,25 @@ board.on("ready", function() {
     var output1 = network.output(2); // 2-bit output (0-3)
     var output2 = network.output(2); // 2-bit output (0-3)
 
-    output1.on("data", move.bind(servo1, data));
-    output2.on("data", move.bind(servo2, data));
+    output1.on("data", move.bind(motor_l));
+    output2.on("data", move.bind(motor_r));
 
     function move(data) {
-        switch(data) {
+    	switch(data) {
             case 1: // Forward
-                return this.ccw();
-
+                return this.forward();
             case 2: // Backward
-                return this.cw();
-
-            case 3: // Stop
-                this.left.to(this.lstop || 90);
-                this.right.to(this.rstop || 90);
-                return;
+                return this.reverse();
+            case 3: // Or Stop
+                return this.stop();
     	}
     }
 
-    // DISPLAY VIA LOCAHOST
+    // DISPLAY VIA LOCAHOST (http.Server)
+    var server = botbrain.Toolkit.visualise(network);
+    var address = server.address();
 
-    var display = botbrain.Toolkit.visualise(network);
-
-    console.log("Your brain is ready for interaction. Please open http://localhost:" + display.port);
-
+    console.log('Bot brain ready for interaction. Please open http://localhost:' + address.port);
 
 });
 ```
