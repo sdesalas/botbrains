@@ -28,9 +28,9 @@ class Toolkit {
     static connection(socket) {
         console.log('Toolkit.connection()');
         socket.emit('connection', this.network && this.network.export());
-        this.network.on('fire', (id, potential) => console.log(`firing ${id} with potential ${potential}` ) || socket.emit('fire', id));
-        socket.on('learn', () => console.log('learn', this.network.synapses[0].w) || socket.emit('update', this.network.learn().export()));
-        socket.on('unlearn', () => console.log('unlearn', this.network.synapses[0].w) || socket.emit('update', this.network.unlearn().export()));
+        this.network.on('fire', (id, potential) => socket.emit('fire', id) && this.verbose && console.log(`firing ${id} with potential ${potential}`));
+        socket.on('learn', () => socket.emit('update', this.network.learn().export()) && this.verbose && console.log('learn', this.network.synapses[0].w));
+        socket.on('unlearn', () => socket.emit('update', this.network.unlearn().export()) && this.verbose && console.log('unlearn', this.network.synapses[0].w));
     }
 
     static visualise(network, port) {

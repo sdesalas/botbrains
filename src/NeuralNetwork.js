@@ -214,17 +214,20 @@ class NeuralNetwork extends EventEmitter {
     }
 
     // Registers an output drain and returns event emitter
-    // let observable = network.output(4); -> 4 bit listener
-    // observable.on('data', data => console.log(data)); -> fires when there is data
-    // observable.on('change', data => consoe.log(data)); -> fires when there is a change
+    // let output = network.output(4); -> 4 bit listener
+    // output.on('data', data => console.log(data)); -> fires when there is data
+    // output.on('change', data => consoe.log(data)); -> fires when there is a change
     output(bits) {
         let observable = new EventEmitter();
         let index = this.drains.length,
             outputNodes = this.channel(index, bits, true);
         this.on('fire', id => {
             if (outputNodes.indexOf(id)) {
-                let data = outputNodes.map(i => this.nodes[i] && this.nodes[i].isfiring ? 1 : 0).join('');
-                observable.emit('data', parseInt(data, 2));
+                let last = observable.lastValue;
+                let data = parseInt(outputNodes.map(i => this.nodes[i] && this.nodes[i].isfiring ? 1 : 0).join(''), 2);
+                observable.emit('data', data);
+                if (last !== data) observable.emit('change', data, last, (last - data) || undefined);
+                observable.lastValue = data;
             }
         });
         return observable;
