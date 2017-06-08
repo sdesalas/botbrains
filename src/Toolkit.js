@@ -15,7 +15,6 @@ class Toolkit {
                 request.on('end', () => ns.serve(request, response)).resume();
             });
             this.server.listen(port);
-            this.server.port = port;
             if (this.io) {
                 this.io.disconnect() || this.io.close();
             }
