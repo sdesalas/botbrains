@@ -12,7 +12,7 @@
     "start": "opn http://localhost:8811 && npm run serve"
   },
   "engines": {
-    "node": ">6.0.0"
+    "node": ">=6.0.0"
   },
   "repository": {
     "type": "git",
