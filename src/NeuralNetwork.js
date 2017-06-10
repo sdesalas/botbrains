@@ -61,9 +61,7 @@ class NeuralNetwork extends EventEmitter {
         this.nodes.forEach(neuron => {
             neuron.on('fire', (i, p) => this.emit('fire', i, p));
             // Add synapse ref pointers to corresponding target neurons
-            neuron.synapses.forEach(s => {
-                s.t = this.nodes[s.i];
-            })
+            neuron.synapses.forEach(s => s.t = this.nodes[s.i]);
         });
     }
 
@@ -247,6 +245,33 @@ class NeuralNetwork extends EventEmitter {
         this.nodes.forEach(n => clearTimeout(n.timeout));
     }
 
+    // Allows 2 networks to be chained together creating a third network.
+    // let network3 = network1.concat(network2)
+    concat(network, at, surfaceArea) {
+        let clone = this.clone(); // default settings will be as per first network
+        let size = clone.size;
+        if (network && network.nodes) {
+            network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
+            surfaceArea = surfaceArea || 0.05; // 5% nodes overlapping (bear in mind 4 synapses per node is 20% node overlap)
+            at = at || 0.975; // where should we intersect? Beginning = 0, End = 1;
+            let fromPos = Math.floor(at*size - size*(surfaceArea/2));
+            let toPos = Math.ceil(at*size + size*(surfaceArea/2));
+            clone.nodes.forEach((neuron, i) => {
+                if (i >= fromPos && i <= toPos) {
+                    let n = Neuron.random(i, size, () => Random.integer(size, size * (1+surfaceArea)), clone.opts);
+                    neuron.synapses.push(...n.synapses);
+                }
+            });
+            let nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
+            clone.nodes.push(...nodes);
+            clone.synapses.forEach(s => s.t = clone.nodes[s.i]);
+            clone.channels.push(...network.channels.map(c => c.map(n => n + size)));
+            clone.drains.push(...network.drains.map(d => d.map(n => n + size)));
+            nodes.forEach(n => n.on('fire', (i, p) => clone.emit('fire', i, p)));
+        }
+        return clone;
+    }
+
     get size() {
         return this.nodes.length;
     }
@@ -288,6 +313,15 @@ class Neuron extends EventEmitter {
             })
             .filter(s => !!s);
         return new Neuron(index, synapses, opts);
+    }
+
+    // Clones a neuron, useful when concatenating networks
+    clone(overrides, offset) {
+        overrides = overrides || {};
+        offset = offset || 0;
+        let synapses = this.synapses.map(s => Object.assign({}, s, { i: offset + s.i }));
+        let neuron = new Neuron(offset + this.id, synapses, this.opts);
+        return Object.assign(neuron, overrides);
     }
 
     // Should be optimised as this gets executed very frequently.
