@@ -135,7 +135,7 @@ If a `String` is passed in as the `opts` parameter, its interpreted as the netwo
 let network = new NeuralNetwork(100, 'ring');
 ```
 
-If a `Function` is passed as the `opts` parameter, its interpreted as the shaper function, see examples in [NetworkShaper.js](src/NetworkShaper.js).
+If a `Function` is passed as the `opts` parameter, its interpreted as the [shaper function](#shaper-function), see examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 ```
 let network = new NeuralNetwork(100, (index, size) => Math.floor(Math.random() * size));
