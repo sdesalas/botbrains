@@ -57,6 +57,7 @@
 				//console.log('fire', id);
 				if (graphData) {
 					let node = graphData.nodes[id];
+					let signalRecovery = 9000 / network.opts.signalSpeed;
 					if (node && node.__sphere) {
 						let material = node.__sphere.material;
 						let oldColor = material.color;
@@ -66,7 +67,7 @@
 						setTimeout(() => {
 							material.color = oldColor;
 							material.opacity = 0.6;
-						}, 600);
+						}, signalRecovery);
 					}
 				}
 			});

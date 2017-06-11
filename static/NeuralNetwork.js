@@ -445,18 +445,13 @@ class Utils {
 var Utils_1 = Utils;
 
 const DEFAULTS = {
-
-    SHAPE: 'tube',
-    SYNAPSE_AVG: 4,
-
-    SIGNAL_FIRE_DELAY: 100,
-    SIGNAL_RECOVERY_DELAY: 1000,
-    SIGNAL_FIRE_THRESHOLD: 0.3,
-
-    LEARNING_RATE: 0.15,
-    LEARNING_PERIOD: 60 * 1000,
-
-    MESSAGE_SIZE: 10 // 10 bit messages (int -> 0-1024)
+    shape: 'tube',              // shaper function name in NetworkShaper.js
+    connectionsPerNeuron: 4,    // average synapses per neuron
+    signalSpeed: 20,            // neurons per second
+    signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
+    learningRate: 0.15,         // max increase/decrease to connection strength
+    learningPeriod: 60 * 1000,  // milliseconds in the past on which learning applies
+    messageSize: 10             // default input/output bits (10 bits = 2^10 = 0-1024)
 };
 
 class NeuralNetwork extends events {
@@ -482,7 +477,7 @@ class NeuralNetwork extends events {
             this.init(opts);
             this.nodes = new Array(size)
                 .fill()
-                .map((n, i) => Neuron.random(i, size, this.shaper, this.opts));
+                .map((n, i) => Neuron.generate(i, size, this.shaper, this.opts));
         }
         else if (size && size.nodes && size.nodes instanceof Array) {
             // Initialize with exported network
@@ -500,9 +495,7 @@ class NeuralNetwork extends events {
         this.nodes.forEach(neuron => {
             neuron.on('fire', (i, p) => this.emit('fire', i, p));
             // Add synapse ref pointers to corresponding target neurons
-            neuron.synapses.forEach(s => {
-                s.t = this.nodes[s.i];
-            });
+            neuron.synapses.forEach(s => s.t = this.nodes[s.i]);
         });
     }
 
@@ -514,16 +507,16 @@ class NeuralNetwork extends events {
                 this.shaper = opts;
                 this.opts = Object.assign({}, DEFAULTS);
                 break;
-            // new NeuralNetwork(100, { LEARNING_RATE: 0.5, SHAPE: 'sausage' });
+            // new NeuralNetwork(100, { learningRate: 0.5, shape: 'sausage' });
             case 'object':
-                this.shaper = NetworkShaper_1[opts.SHAPE || DEFAULTS.SHAPE];
+                this.shaper = NetworkShaper_1[opts.shape || DEFAULTS.shape];
                 this.opts = Object.assign({}, DEFAULTS, opts);
                 break;
             // new NeuralNetwork(100);
             // new NeuralNetwork(100, 'sausage');
             case 'undefined':
             case 'string':
-                this.shaper = NetworkShaper_1[opts || DEFAULTS.SHAPE];
+                this.shaper = NetworkShaper_1[opts || DEFAULTS.shape];
                 this.opts = Object.assign({}, DEFAULTS);
                 break;
         }
@@ -553,21 +546,21 @@ class NeuralNetwork extends events {
         }
     }
 
-    get learningPeriod() {
+    getLearningPeriod(ignoreTraining) {
         const now = new Date().getTime();
         let lp = now - this.lastTrained;
-        if (!lp || lp > this.opts.LEARNING_PERIOD) {
-            lp = this.opts.LEARNING_PERIOD;
+        if (ignoreTraining || !lp || lp > this.opts.learningPeriod) {
+            lp = this.opts.learningPeriod;
         }
         return lp;
     }
 
     // Reinforces synapses that fired recently
     // network.learn()
-    learn(rate) {
+    learn(rate, ignoreTraining) {
         const opts = this.opts;
         const now = new Date().getTime();
-        const learningPeriod = this.learningPeriod;
+        const learningPeriod = this.getLearningPeriod(ignoreTraining);
         const cutoff = now - learningPeriod;
         this.synapses.forEach(s => {
             // Strengthen / weaken synapses that fired recently
@@ -575,7 +568,7 @@ class NeuralNetwork extends events {
             let recency = s.l - cutoff;
             // If synapse hasnt fired then use inverse.
             if (recency > 0) {
-                s.w += (recency / learningPeriod) * (rate || opts.LEARNING_RATE);
+                s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
                 // Make sure weight is always between 0 and 1
                 s.w = Utils_1.constrain(s.w, 0, 1);
             }
@@ -587,10 +580,10 @@ class NeuralNetwork extends events {
     // Weakens synapses that fired recently
     // and recycles old/unused synapses for re-use
     // network.unlearn()
-    unlearn(rate) {
+    unlearn(rate, ignoreTraining) {
         const opts = this.opts;
         const now = new Date().getTime();
-        const cutoff = now - this.learningPeriod * 2;
+        const cutoff = now - this.getLearningPeriod(ignoreTraining) * 2;
         // When something bad has happened, the lack of synapses
         // firing is also part of the problem, so we can
         // reactivate old/unused synapses for re-use.
@@ -599,14 +592,14 @@ class NeuralNetwork extends events {
             .filter(s => Math.random() > 0.10) // random 10% only
             .forEach(s => {
                 // Strengthen by 10% of learning rate
-                s.w += (rate || opts.LEARNING_RATE) * 0.1;
+                s.w += (rate * opts.learningRate || opts.learningRate) * 0.1;
                 s.w = Utils_1.constrain(s.w, 0, 1);
             });
         // Also apply normal unlearning in recent past
-        return this.learn(-1 * (rate || opts.LEARNING_RATE));
+        return this.learn(-1 * (rate || opts.learningRate), ignoreTraining);
     }
 
-    // Creates channel, defaulted to MESSAGE_SIZE neurons (bits)
+    // Creates channel, defaulted to `messageSize` neurons (bits)
     // network.channel() -> inward, next available
     // network.channel(2) -> inward at slot 2 (ie, 3rd slot -> 0-indexed)
     // network.channel(2, 16) -> inward, slot 2 at set size
@@ -615,7 +608,7 @@ class NeuralNetwork extends events {
     channel(index, bits, outward) {
         let channels = outward ? this.drains : this.channels;
         index = index || channels.length;
-        bits = typeof bits === 'number' ? bits : this.opts.MESSAGE_SIZE;
+        bits = typeof bits === 'number' ? bits : this.opts.messageSize;
         let nodes = bits instanceof Array ? bits : undefined;
         if (!nodes) {
             // Find starting/ending point and add nodes to channel
@@ -633,7 +626,7 @@ class NeuralNetwork extends events {
     input(data, index) {
         let bytes,
             inputNodes = this.channels[index || 0] || this.channel();
-        const max = Math.pow(2, this.opts.MESSAGE_SIZE) - 1;
+        const max = Math.pow(2, this.opts.messageSize) - 1;
         if (typeof data === 'number' && inputNodes && inputNodes.length) {
             data = (data > max) ? max : (data < 0) ? 0 : data;
             bytes = data.toString(2).split('');
@@ -653,17 +646,20 @@ class NeuralNetwork extends events {
     }
 
     // Registers an output drain and returns event emitter
-    // let observable = network.output(4); -> 4 bit listener
-    // observable.on('data', data => console.log(data)); -> fires when there is data
-    // observable.on('change', data => consoe.log(data)); -> fires when there is a change
+    // let output = network.output(4); -> 4 bit listener
+    // output.on('data', data => console.log(data)); -> fires when there is data
+    // output.on('change', data => consoe.log(data)); -> fires when there is a change
     output(bits) {
         let observable = new events();
         let index = this.drains.length,
             outputNodes = this.channel(index, bits, true);
         this.on('fire', id => {
             if (outputNodes.indexOf(id)) {
-                let data = outputNodes.map(i => this.nodes[i] && this.nodes[i].isfiring ? 1 : 0).join('');
-                observable.emit('data', parseInt(data, 2));
+                let last = observable.lastValue;
+                let data = parseInt(outputNodes.map(i => this.nodes[i] && this.nodes[i].isfiring ? 1 : 0).join(''), 2);
+                observable.emit('data', data);
+                if (last !== data) observable.emit('change', data, last, (last - data) || undefined);
+                observable.lastValue = data;
             }
         });
         return observable;
@@ -681,6 +677,33 @@ class NeuralNetwork extends events {
     // network.stop();
     stop() {
         this.nodes.forEach(n => clearTimeout(n.timeout));
+    }
+
+    // Allows 2 networks to be chained together creating a third network.
+    // let network3 = network1.concat(network2)
+    concat(network, at, surfaceArea) {
+        let clone = this.clone(); // default settings will be as per first network
+        let size = clone.size;
+        if (network && network.nodes) {
+            network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
+            surfaceArea = surfaceArea || 0.05; // 5% nodes overlapping (bear in mind 4 synapses per node is 20% node overlap)
+            at = at || 0.975; // where should we intersect? Beginning = 0, End = 1;
+            let fromPos = Math.floor(at*size - size*(surfaceArea/2));
+            let toPos = Math.ceil(at*size + size*(surfaceArea/2));
+            clone.nodes.forEach((neuron, i) => {
+                if (i >= fromPos && i <= toPos) {
+                    let n = Neuron.generate(i, size, () => Random_1.integer(size, size * (1+surfaceArea)), clone.opts);
+                    neuron.synapses.push(...n.synapses);
+                }
+            });
+            let nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
+            clone.nodes.push(...nodes);
+            clone.synapses.forEach(s => s.t = clone.nodes[s.i]);
+            clone.channels.push(...network.channels.map(c => c.map(n => n + size)));
+            clone.drains.push(...network.drains.map(d => d.map(n => n + size)));
+            nodes.forEach(n => n.on('fire', (i, p) => clone.emit('fire', i, p)));
+        }
+        return clone;
     }
 
     get size() {
@@ -707,10 +730,10 @@ class Neuron extends events {
         this.opts = opts || DEFAULTS;
     }
 
-    // Generates a random neuron
-    static random(index, size, shaper, opts) {
+    // Generates a neuron
+    static generate(index, size, shaper, opts) {
         // Number of synapses are random based on average
-        let synapses = new Array(Random_1.integer(1, opts.SYNAPSE_AVG * 2 - 1))
+        let synapses = new Array(Random_1.integer(1, opts.connectionsPerNeuron * 2 - 1))
             .fill()
             .map(() => {
                 let i = shaper(index, size),
@@ -726,18 +749,29 @@ class Neuron extends events {
         return new Neuron(index, synapses, opts);
     }
 
+    // Clones a neuron, useful when concatenating networks
+    clone(overrides, offset) {
+        overrides = overrides || {};
+        offset = offset || 0;
+        let synapses = this.synapses.map(s => Object.assign({}, s, { i: offset + s.i }));
+        let neuron = new Neuron(offset + this.id, synapses, this.opts);
+        return Object.assign(neuron, overrides);
+    }
+
     // Should be optimised as this gets executed very frequently.
     fire(potential) {
         if (this.isfiring) return false;
         const opts = this.opts;
+        const signalFireDelay = 1000 / opts.signalSpeed;
+        const signalRecovery = signalFireDelay * 10;
         // Action potential is accumulated so that
         // certain patterns can trigger even weak synapses.
         potential = isNaN(potential) ? 1 : potential;
         this.potential += potential;
         // But duration is very short
-        setTimeout(() => this.potential -= potential, opts.SIGNAL_FIRE_DELAY);
+        setTimeout(() => this.potential -= potential, signalFireDelay);
         // Should we fire onward connections?
-        if (this.potential > opts.SIGNAL_FIRE_THRESHOLD) {
+        if (this.potential > opts.signalFireThreshold) {
             this.isfiring = true;
             this.timeout = setTimeout(() => {
                 this.emit('fire', this.id, potential);
@@ -749,7 +783,7 @@ class Neuron extends events {
                         s.l = new Date().getTime();
                     }
                 });
-            }, opts.SIGNAL_FIRE_DELAY);
+            }, signalFireDelay);
             // Post-fire recovery
             // Ideally should bear in mind refractory periods
             // http://www.physiologyweb.com/lecture_notes/neuronal_action_potential/neuronal_action_potential_refractory_periods.html
@@ -757,7 +791,7 @@ class Neuron extends events {
                 this.potential = 0;
                 this.isfiring = false;
                 this.emit('ready', this.id);
-            }, opts.SIGNAL_RECOVERY_DELAY);
+            }, signalRecovery);
         }
         return this;
     }

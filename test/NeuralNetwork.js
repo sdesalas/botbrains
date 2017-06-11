@@ -52,11 +52,13 @@ describe('NeuralNetwork', () => {
     describe('.learn()', () => {
         let node, synapse, startWeight;
         let round = (n) => Number(n).toFixed(2);
+        let signalFireDelay;
 
         beforeEach(() => {
             node = network.nodes[0];
             synapse = node.synapses[0];
             startWeight = synapse.w = 0.65;
+            signalFireDelay = 1000 / network.opts.signalSpeed;
             node.fire();
         });
 
@@ -69,36 +71,36 @@ describe('NeuralNetwork', () => {
         it('reinforces learning', (done) => {
             setTimeout(() => {
                 assert.equal(round(synapse.w), startWeight);
-                network.learn();
+                network.learn(1, true);
                 assert.equal(synapse.w > startWeight, true);
-                network.unlearn();
+                network.unlearn(1, true);
                 assert.equal(round(synapse.w), startWeight);
-                network.unlearn();
+                network.unlearn(1, true);
                 assert.equal(synapse.w < startWeight, true);
                 done();
-            }, network.opts.SIGNAL_FIRE_DELAY);
+            }, signalFireDelay);
         });
 
         it('reinforces learning by the LEARNING_RATE', (done) => {
             setTimeout(() => {
-                network.learn();
-                assert.equal(round(synapse.w), round(startWeight + network.opts.LEARNING_RATE));
-                network.unlearn();
-                network.unlearn();
-                assert.equal(round(synapse.w), round(startWeight - network.opts.LEARNING_RATE));
+                network.learn(1, true);
+                assert.equal(round(synapse.w), round(startWeight + network.opts.learningRate));
+                network.unlearn(1, true);
+                network.unlearn(1, true);
+                assert.equal(round(synapse.w), round(startWeight - network.opts.learningRate));
                 done();
-            }, network.opts.SIGNAL_FIRE_DELAY);
+            }, signalFireDelay);
         });
 
         it('reinforces learning proportionally over the LEARNING_PERIOD', (done) => {
             setTimeout(() => {
-                network.learn();
-                assert.equal(round(synapse.w), round(startWeight + network.opts.LEARNING_RATE * 99/100));
-                network.unlearn();
-                network.unlearn();
-                assert.equal(round(synapse.w), round(startWeight - network.opts.LEARNING_RATE * 99/100));
+                network.learn(1, true);
+                assert.equal(round(synapse.w), round(startWeight + network.opts.learningRate * 99/100));
+                network.unlearn(1, true);
+                network.unlearn(1, true);
+                assert.equal(round(synapse.w), round(startWeight - network.opts.learningRate * 99/100));
                 done();
-            }, network.opts.SIGNAL_FIRE_DELAY + network.opts.LEARNING_PERIOD / 100);
+            }, signalFireDelay + network.opts.learningPeriod / 100);
         });
 
     });
