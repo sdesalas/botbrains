@@ -91,3 +91,40 @@ Then run it!
 ```sh
 $ node robot.js
 ```
+## API :: NeuralNetwork
+
+NeuralNetwork is a class in the botbrain module and can be loaded in the following ways:
+
+```
+import { NeuralNetwork } from 'botbrain'; // ES6  
+
+const NeuralNetwork = require('botbrain').NeuralNetwork; // Node, CommonJS
+
+const NeuralNetwork = (window || this).botbrain.NeuralNetwork; // Browser, in global context
+```
+
+### new NeuralNetwork(size, opts)
+
+Generates a neural network.
+
+- **`size`**: The number of neurons in the neural network
+- **`opts`**: A map of settings for the network
+    - `.shape`: Choice of 'tube', 'ring', 'ball', 'sausage', 'snake', or any other in [NetworkShaper.js](src/NetworkShaper.js). Defaults to 'tube'.
+    - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to 4.
+    - `.signalSpeed`: Neurons per second. Defaults to 20.
+    - `.signalFireThreshold`: Potential needed to trigger a chain reaction. Defaults to 0.3.
+    - `.learningRate`: Max increase/decrease to connection strength when learning.
+    - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to 60,000 (60 seconds).
+    - `.messageSize`: Number of neurons involved in each input/output channel. Defaults to 10 bits (ie 2^10 = 0-1024).
+
+For example, to create a network of 100 neurons using all default options:
+
+```
+let network = new NeuralNetwork(100);
+```
+
+To create a ring-shaped network of 100 neurons with double the speed and learning rate.
+
+```
+let network = new NeuralNetwork(1000, { shape: 'ring', signalSpeed: 40, learningRate: 0.3 });
+```
