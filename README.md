@@ -110,12 +110,12 @@ Generates a neural network.
 - **`size`**: The number of neurons in the neural network
 - **`opts`**: A map of settings for the network
     - `.shape`: Choice of 'tube', 'ring', 'ball', 'sausage', 'snake', or any other in [NetworkShaper.js](src/NetworkShaper.js). Defaults to 'tube'.
-    - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to 4.
-    - `.signalSpeed`: Neurons per second. Defaults to 20.
-    - `.signalFireThreshold`: Potential needed to trigger a chain reaction. Defaults to 0.3.
-    - `.learningRate`: Max increase/decrease to connection strength when learning.
-    - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to 60,000 (60 seconds).
-    - `.messageSize`: Number of neurons involved in each input/output channel. Defaults to 10 bits (ie 2^10 = 0-1024).
+    - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to `4`.
+    - `.signalSpeed`: Speed in neurons per second. Defaults to `20`.
+    - `.signalFireThreshold`: Threshold (between 0 and 1) needed to trigger onward neurons. Defaults to `0.3`.
+    - `.learningRate`: Max increase/decrease to connection strength when learning. Defaults to `0.15`.
+    - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to `60000` ms.
+    - `.messageSize`: Number of neurons involved in each input/output channel. Defaults to `10` bits (ie 2^10 = 0-1024).
 
 For example, to create a network of 100 neurons using all default options:
 
@@ -128,3 +128,43 @@ To create a ring-shaped network of 100 neurons with double the speed and learnin
 ```
 let network = new NeuralNetwork(1000, { shape: 'ring', signalSpeed: 40, learningRate: 0.3 });
 ```
+
+If a `String` is passed in as the `opts` parameter, its interpreted as the network shape.
+
+```
+let network = new NeuralNetwork(100, 'ring');
+```
+
+If a `Function` is passed as the `opts` parameter, its interpreted as the shaper function, see examples in [NetworkShaper.js](src/NetworkShaper.js).
+
+```
+let network = new NeuralNetwork(100, (index, size) => Math.floor(Math.random() * size));
+```
+
+### Shaper Function
+
+A shaper is a function that determines the shape of the network by returning the likely onward connections made by each neuron. 
+
+For example, if a neuron is connected to other neurons at random, the final shape of the network will be a ball. If its connected to nearby neurons the shape will be more of a snake or cylinder. If neurons close to the end are linked to neurons at the beginning, the end product will be more of a ring or a doughnut.
+
+A shaper function has two inputs: 
+
+- **`index`**: The node position in the `nodes` array. In a network of 10 nodes, the first node has an index of 0, the last node an index of 99.
+- **`size`**: The number of nodes in the network. This is useful for linking up the end of the network or for discarding links outside the network.
+
+The shaper function returns *the `index` to an onward neuron* (used for connecting to it). 
+
+Bear in mind that the onward connection should be a *variable random number*, as the shaper will be executed several times per neuron, and if a neuron has 4 connections you will want these to connect to different onward neurons.
+
+For example:
+
+```
+// Random ball shape
+const ball = function (index, size) {
+    const target = Math.floor(Math.random() * size); // pick any onward neuron at random
+    if (target === index) return null; // reject it if it connects back to same neuron
+    return target; // otherwise return it
+}
+```
+
+There are more examples in [NetworkShaper.js](src/NetworkShaper.js).
