@@ -110,6 +110,7 @@ Generates a neural network.
 - **`size`**: The number of neurons in the neural network
 - **`opts`**: A map of settings for the network
     - `.shape`: Choice of 'tube', 'ring', 'ball', 'sausage', 'snake', or any other in [NetworkShaper.js](src/NetworkShaper.js). Defaults to 'tube'.
+    - `.shaper`: The [shaper function](#shaper-function) used for giving shape to the network. If available will ignore `.shape`.
     - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to `4`.
     - `.signalSpeed`: Speed in neurons per second. Defaults to `20`.
     - `.signalFireThreshold`: Threshold (between 0 and 1) needed to trigger onward neurons. Defaults to `0.3`.
