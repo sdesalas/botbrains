@@ -163,7 +163,7 @@ Bear in mind that the onward connection should be a *variable random number*, as
 
 For example:
 
-```
+```js
 // Random ball shape
 const ball = function (index, size) {
     const i = Math.floor(Math.random() * size); // pick any onward neuron at random
