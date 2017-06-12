@@ -166,9 +166,9 @@ For example:
 ```
 // Random ball shape
 const ball = function (index, size) {
-    const target = Math.floor(Math.random() * size); // pick any onward neuron at random
-    if (target === index) return null; // reject it if it connects back to same neuron
-    return target; // otherwise return it
+    const i = Math.floor(Math.random() * size); // pick any onward neuron at random
+    if (i === index) return null; // reject it if it connects back to same neuron
+    return i; // otherwise return it
 }
 ```
 
