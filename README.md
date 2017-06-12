@@ -142,6 +142,58 @@ If a `Function` is passed as the `opts` parameter, its interpreted as the [shape
 let network = new NeuralNetwork(100, (index, size) => Math.floor(Math.random() * size));
 ```
 
+### network.input(data [, channel = 0])
+
+Inputs data into the network, firing neuron pathways across a particular (zero-indexed) channel.
+
+- **`data`**: Integer input, normally between 0 and 1023 (if `messageSize` is 10 then `2^10 = 1024`) . Required.
+- **`channel`**: Zero-indexed channel. Each channel takes up 10 neurons (if `messageSize` is 10). Defaults to `0`.
+
+Usage:
+
+```
+network.input(sensor1.value); // Inputs sensor1 data into channel 0
+network.input(sensor2.value, 1); // Inputs sensor2 data into channel 1
+```
+
+### network.output([bits = messageSize])
+
+Returns an [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter) with 2 events: `data` and `change`. 
+
+- **`bits`**: An integer that determines the number of neurons used for the output and resulting size of messages received by event callbacks. Defaults to `messageSize`.
+
+**Event: `data`**:
+
+Fires whenever there is data to output.
+
+The event handler function will receive the following arguments.
+
+- **`data`**: The integer value output, in `2^bits`. Normally between 0 and 1023 if no `bits` value was used.
+
+```
+network.output(8); // 8 bits = resulting value will be 0-255
+network.on('data', function(data) {
+    console.log(`Network output (0-255) is: ${data}.`);
+});
+```
+
+**Event: `change`**:
+
+An event that fires whenever there is a change in the outgoing data. 
+
+The event handler function will receive the following arguments.
+
+- **`data`**: The integer value output, in `2^bits`. Normally between 0 and 1023 if no `bits` value was used.
+- **`last`**: The previous integer value output, in `2^bits`. 
+- **`diff`**: The difference between `last` and `data`.
+
+```
+network.output(8); // 8 bits = resulting value will be 0-255
+network.on('change', function(data, last, diff) {
+    console.log(`Network output (0-255) is: ${data}. Previous output was ${last}. Difference is ${diff}`);
+});
+```
+
 ### Shaper Function
 
 A shaper is a function that determines the shape of the network by returning the likely onward connections made by each neuron. 
