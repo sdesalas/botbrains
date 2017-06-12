@@ -152,8 +152,8 @@ For example, if a neuron is connected to other neurons at random, the final shap
 
 A shaper function has two inputs: 
 
-- **`index`**: The node position in the `nodes` array. In a network of 10 nodes, the first node has an index of 0, the last node an index of 99.
-- **`size`**: The number of nodes in the network. This is useful for linking up the end of the network or for discarding links outside the network.
+- **`index`**: The node position in the `nodes` array. In a network of 10 nodes, the first node has an index of 0, the last node an index of 9.
+- **`size`**: The total number of nodes in the network. This is useful for linking up the end of the network or for discarding links outside the network.
 
 The shaper function returns *the `index` to an onward neuron* (used for connecting to it). 
 
