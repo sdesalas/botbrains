@@ -148,6 +148,8 @@ A shaper is a function that determines the shape of the network by returning the
 
 For example, if a neuron is connected to other neurons at random, the final shape of the network will be a ball. If its connected to nearby neurons the shape will be more of a snake or cylinder. If neurons close to the end are linked to neurons at the beginning, the end product will be more of a ring or a doughnut.
 
+![shaper.png](shaper.png)
+
 A shaper function has two inputs: 
 
 - **`index`**: The node position in the `nodes` array. In a network of 10 nodes, the first node has an index of 0, the last node an index of 99.
