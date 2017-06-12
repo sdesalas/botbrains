@@ -178,5 +178,5 @@ There are more examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 In traditional models of neural networks, shape tends not to matter very much, it simply occurs as a result of creating the necessary connections between different neural layers. 
 
-The Neural Network model used for [botbrain](https://www.npmjs.com/package/botbrain) is [asynchronous](https://en.wikipedia.org/wiki/Asynchrony_(computer_programming)). Signal propagate across the network in the same manner as they would in an animal brain, one neuron at a time. Different shapes matter because they create resonance and oscillation patterns that are important for producing particular inputs in a time-dependent manner.
+The Neural Network model used for [botbrain](https://www.npmjs.com/package/botbrain) is [asynchronous](https://en.wikipedia.org/wiki/Asynchrony_(computer_programming)). Signal propagate across the network in the same manner as they would in an animal brain, one neuron at a time. Different shapes matter because they create resonance and oscillation patterns that are important for producing particular outputs to inputs in a time-dependent manner.
 
