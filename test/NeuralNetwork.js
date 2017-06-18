@@ -26,7 +26,7 @@ describe('NeuralNetwork', () => {
     });
 
     it('.strength', () => {
-        assert.around(network.strength, 0.24);
+        assert.around(network.strength, 0.46);
     });
 
     it('.export()', () => {

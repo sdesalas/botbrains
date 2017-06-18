@@ -30,27 +30,13 @@ class Toolkit {
         this.network.on('fire', (id, potential) => socket.emit('fire', id) && this.verbose && console.log(`firing ${id} with potential ${potential}`));
         socket.on('learn', () => socket.emit('update', this.network.learn().export()) && this.verbose && console.log('learn', this.network.synapses[0].w));
         socket.on('unlearn', () => socket.emit('update', this.network.unlearn().export()) && this.verbose && console.log('unlearn', this.network.synapses[0].w));
+        setInterval(() => socket.emit('update', this.network.export()), 1000);
     }
 
     static visualise(network, port) {
         if (network) {
             this.network = network;
             return this.serve(port || 8811);
-        }
-    }
-
-    static getIPv4() {
-        let ifname, ifaces = os.networkInterfaces();
-        for (ifname in ifaces) {
-            if (ifaces.hasOwnProperty(ifname)) {
-                let arr = ifaces[ifname], n = arr && arr.length;
-                for (let n = 0; n < arr.length; n++) {
-                    let iface = arr[n];
-                    if (iface.family === 'IPv4' && iface.internal === false) {
-                        return iface.address;
-                    }
-                }
-            }
         }
     }
 
