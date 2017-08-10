@@ -11,7 +11,7 @@ const DEFAULTS = {
     signalSpeed: 10,            // neurons per second
     signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
     learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-    learningRate: 0.1,          // max increase/decrease to connection strength when learning
+    learningRate: 0.08,          // max increase/decrease to connection strength when learning
     messageSize: 10             // default input/output bits (10 bits = 0-1023)
 }
 
@@ -114,8 +114,7 @@ class NeuralNetwork extends EventEmitter {
         const now = new Date().getTime();
         const learningPeriod = this.opts.learningPeriod;
         const cutoff = now - learningPeriod;
-        // Start by decaying synapses to allow new learning
-        this.decay(rate);
+
         if (rate < 0) {
             // When something bad has happened, the lack of synapses
             // firing is also part of the problem, so we can
@@ -128,21 +127,23 @@ class NeuralNetwork extends EventEmitter {
                     s.w += -1 * (rate * opts.learningRate || opts.learningRate);
                     s.w = Utils.constrain(s.w, -0.5, 1);
                 });
+        } else {
+            this.synapses.forEach(s => {
+                // Strengthen / weaken synapses that fired recently
+                // in proportion to how recently they fired
+                let recency = s.l - cutoff;
+                // If synapse hasnt fired then use inverse.
+                if (recency > 0) {
+                    s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
+                    // Make sure weight is between -0.5 and 1
+                    // Allow NEGATIVE weighing as real neurons do,
+                    // inhibiting onward connections in some cases.
+                    s.w = Utils.constrain(s.w, -0.5, 1);
+                }
+            });
         }
-        this.synapses.forEach(s => {
-            // Strengthen / weaken synapses that fired recently
-            // in proportion to how recently they fired
-            let recency = s.l - cutoff;
-            // If synapse hasnt fired then use inverse.
-            if (recency > 0) {
-                s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
-                // Make sure weight is between -0.5 and 1
-                // Allow NEGATIVE weighing as real neurons do,
-                // inhibiting onward connections in some cases.
-                s.w = Utils.constrain(s.w, -0.5, 1);
-            }
-        });
-        return this;
+        // Decay synapses to allow new learning
+        return this.decay(Math.abs(rate || opts.learningRate));
     }
 
     // Negative reinforcement (to avoid recent neural pathways)
@@ -155,13 +156,14 @@ class NeuralNetwork extends EventEmitter {
     // This algorithm is adaptive, in other words, connections
     // will decay significantly faster if there are too many of them.
     decay(rate) {
-        const strength = Math.pow(this.strength, 3);
+        const strength = this.strength;
         const synapses = this.synapses;
         const stableLevel = this.opts.signalFireThreshold / 2;
         // Use fast recursion (instead of Array.prototype.forEach)
         let i = synapses.length;
         while(i--) {
-            let s = synapses[i], decay = (s.w - stableLevel) * strength * rate;
+            const s = synapses[i], 
+                decay = (s.w - stableLevel) * strength * rate;
             s.w -= decay;
         }
         return this;
@@ -349,7 +351,7 @@ class Neuron extends EventEmitter {
                 let i = this.synapses.length;
                 while(i--) {
                     let s = this.synapses[i];
-                    if (s && s.t && s.t.fire(s.w).isfiring) {
+                    if (s && s.t && s.t.fire(s.w)) {
                         // Time synapse last fired is important
                         // to learn from recent past
                         s.l = new Date().getTime();

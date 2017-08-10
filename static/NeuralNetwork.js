@@ -447,12 +447,10 @@ var Utils_1 = Utils;
 const DEFAULTS = {
     shape: 'tube',              // shaper function name in NetworkShaper.js
     connectionsPerNeuron: 4,    // average synapses per neuron
-    signalSpeed: 20,            // neurons per second
+    signalSpeed: 10,            // neurons per second
     signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
     learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-    learningRate: 0.15,         // max increase/decrease to connection strength when learning
-    decayInterval: 100,         // decay heartbeat
-    decayRate: 0.15,            // max decrease to connection strength when decaying
+    learningRate: 0.01,          // max increase/decrease to connection strength when learning
     messageSize: 10             // default input/output bits (10 bits = 0-1023)
 };
 
@@ -499,9 +497,6 @@ class NeuralNetwork extends events {
             // Add synapse ref pointers to corresponding target neurons
             neuron.synapses.forEach(s => s.t = this.nodes[s.i]);
         });
-        // Synapses must decay over time to allow new learning
-        // and avoid overloading the network
-        setInterval(() => this.decay(this.opts.decayRate), this.opts.decayInterval);
     }
 
     // Initialise
@@ -558,6 +553,7 @@ class NeuralNetwork extends events {
         const now = new Date().getTime();
         const learningPeriod = this.opts.learningPeriod;
         const cutoff = now - learningPeriod;
+
         if (rate < 0) {
             // When something bad has happened, the lack of synapses
             // firing is also part of the problem, so we can
@@ -584,7 +580,8 @@ class NeuralNetwork extends events {
                 s.w = Utils_1.constrain(s.w, -0.5, 1);
             }
         });
-        return this;
+        // Decay synapses to allow new learning
+        return this.decay(Math.abs(rate || opts.learningRate));
     }
 
     // Negative reinforcement (to avoid recent neural pathways)
@@ -597,15 +594,17 @@ class NeuralNetwork extends events {
     // This algorithm is adaptive, in other words, connections
     // will decay significantly faster if there are too many of them.
     decay(rate) {
-        const strength = Math.pow(this.strength, 5);
+        const strength = this.strength;
         const synapses = this.synapses;
         const stableLevel = this.opts.signalFireThreshold / 2;
         // Use fast recursion (instead of Array.prototype.forEach)
         let i = synapses.length;
         while(i--) {
-            let s = synapses[i], decay = (s.w - stableLevel) * strength * rate;
+            const s = synapses[i], 
+                decay = (s.w - stableLevel) * strength * rate;
             s.w -= decay;
         }
+        return this;
     }
 
     // Creates channel, defaulted to `messageSize` neurons (bits)
@@ -790,7 +789,7 @@ class Neuron extends events {
                 let i = this.synapses.length;
                 while(i--) {
                     let s = this.synapses[i];
-                    if (s && s.t && s.t.fire(s.w).isfiring) {
+                    if (s && s.t && s.t.fire(s.w)) {
                         // Time synapse last fired is important
                         // to learn from recent past
                         s.l = new Date().getTime();
