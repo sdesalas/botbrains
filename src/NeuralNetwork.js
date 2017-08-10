@@ -8,12 +8,10 @@ const Utils = require('./Utils');
 const DEFAULTS = {
     shape: 'tube',              // shaper function name in NetworkShaper.js
     connectionsPerNeuron: 4,    // average synapses per neuron
-    signalSpeed: 20,            // neurons per second
+    signalSpeed: 10,            // neurons per second
     signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
     learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-    learningRate: 0.15,         // max increase/decrease to connection strength when learning
-    decayInterval: 100,         // decay heartbeat
-    decayRate: 0.15,            // max decrease to connection strength when decaying
+    learningRate: 0.1,          // max increase/decrease to connection strength when learning
     messageSize: 10             // default input/output bits (10 bits = 0-1023)
 }
 
@@ -60,9 +58,6 @@ class NeuralNetwork extends EventEmitter {
             // Add synapse ref pointers to corresponding target neurons
             neuron.synapses.forEach(s => s.t = this.nodes[s.i]);
         });
-        // Synapses must decay over time to allow new learning
-        // and avoid overloading the network
-        setInterval(() => this.decay(this.opts.decayRate), this.opts.decayInterval);
     }
 
     // Initialise
@@ -119,6 +114,8 @@ class NeuralNetwork extends EventEmitter {
         const now = new Date().getTime();
         const learningPeriod = this.opts.learningPeriod;
         const cutoff = now - learningPeriod;
+        // Start by decaying synapses to allow new learning
+        this.decay(rate);
         if (rate < 0) {
             // When something bad has happened, the lack of synapses
             // firing is also part of the problem, so we can
@@ -158,7 +155,7 @@ class NeuralNetwork extends EventEmitter {
     // This algorithm is adaptive, in other words, connections
     // will decay significantly faster if there are too many of them.
     decay(rate) {
-        const strength = Math.pow(this.strength, 5);
+        const strength = Math.pow(this.strength, 3);
         const synapses = this.synapses;
         const stableLevel = this.opts.signalFireThreshold / 2;
         // Use fast recursion (instead of Array.prototype.forEach)
@@ -167,6 +164,7 @@ class NeuralNetwork extends EventEmitter {
             let s = synapses[i], decay = (s.w - stableLevel) * strength * rate;
             s.w -= decay;
         }
+        return this;
     }
 
     // Creates channel, defaulted to `messageSize` neurons (bits)

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/sdesalas/botbrains.svg?branch=master)](https://travis-ci.org/sdesalas/botbrains)
+
 # BotBrains
 
 BotBrains is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot.
