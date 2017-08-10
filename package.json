@@ -1,6 +1,6 @@
 {
-  "name": "botbrain",
-  "version": "0.2.9",
+  "name": "botbrains",
+  "version": "0.3.1",
   "description": "Robot brain tools to automate your nodebot",
   "main": "index.js",
   "browser": "static/NeuralNetwork.js",
@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/sdesalas/botbrain.git"
+    "url": "git+https://github.com/sdesalas/botbrains.git"
   },
   "keywords": [
     "robot",
@@ -27,9 +27,9 @@
   "author": "Steven de Salas",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/sdesalas/botbrain/issues"
+    "url": "https://github.com/sdesalas/botbrains/issues"
   },
-  "homepage": "https://github.com/sdesalas/botbrain#readme",
+  "homepage": "https://github.com/sdesalas/botbrains#readme",
   "dependencies": {
     "node-static": "^0.7.9",
     "socket.io": "1.4.8"

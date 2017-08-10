@@ -1,14 +1,14 @@
-# Bot Brain
+# BotBrains
 
-BotBrain is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot.
+BotBrains is a set of artificial learning tools to automate an [Arduino](http://arduino.org)-based robot.
 
 Its been built as part of an educational workshop on artificial learning specifically for [International Nodebots Day](https://www.eventbrite.com.au/e/international-nodebots-day-melbourne-2017-tickets-34845310261).
 
 This material here is very basic and aimed more at communicating the core concept of a neural network through practice than dealing with all the theoretical stuff that is available out there.
 
-## Interact with your robot's brain in 3D.
+## Interact with your robot brains in 3D.
 
-The key aspect of BotBrain is the ability to watch signals travel across your robot's neural network in 3D, and train it with positive and negative reinforcement.
+The key aspect of BotBrains is the ability to watch signals travel across your robot's neural network in 3D, and train it with positive and negative reinforcement.
 
 ![brain-3d.png](brain-3d.gif)
 
@@ -18,7 +18,7 @@ You need [NodeJS](https://nodejs.org/en/download/) installed, version 6 or above
 
 ```sh
 $ mkdir my-bot && cd my-bot
-$ npm install botbrain
+$ npm install botbrains
 $ npm start
 ```
 
@@ -33,19 +33,19 @@ Here is a longer example:
 ```sh
 $ mkdir my-bot && cd my-bot
 $ npm install johnny-five
-$ npm install botbrain
+$ npm install botbrains
 ```
 
 ### robot.js
 ```js
 var five = require("johnny-five");
-var botbrain = require("botbrain");
+var botbrains = require("botbrains");
 
 var board = new five.Board({port: process.argv[2] || "" });
 
 board.on("ready", function() {
 
-    var network = new botbrain.NeuralNetwork(32);
+    var network = new botbrains.NeuralNetwork(32);
 
     // PROXIMITY SENSOR INPUT
     var proximity = new five.Sensor({ pin: "A6", freq: 200 });
@@ -78,7 +78,7 @@ board.on("ready", function() {
     }
 
     // DISPLAY VIA LOCAHOST (http.Server)
-    var server = botbrain.Toolkit.visualise(network);
+    var server = botbrains.Toolkit.visualise(network);
     var address = server.address();
 
     console.log('Bot brain ready for interaction. Please open http://localhost:' + address.port);
@@ -93,14 +93,14 @@ $ node robot.js
 ```
 ## API :: NeuralNetwork
 
-NeuralNetwork is a class in the botbrain module and can be loaded in the following ways:
+NeuralNetwork is a class in the botbrains module and can be loaded in the following ways:
 
 ```
-import { NeuralNetwork } from 'botbrain'; // ES6  
+import { NeuralNetwork } from 'botbrains'; // ES6  
 
-const NeuralNetwork = require('botbrain').NeuralNetwork; // Node, CommonJS
+const NeuralNetwork = require('botbrains').NeuralNetwork; // Node, CommonJS
 
-const NeuralNetwork = (window || this).botbrain.NeuralNetwork; // Browser, in global context
+const NeuralNetwork = (window || this).botbrains.NeuralNetwork; // Browser, in global context
 ```
 
 ### new NeuralNetwork(size, opts)
@@ -230,5 +230,5 @@ There are more examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 In traditional models of neural networks, shape tends not to matter very much, it simply occurs as a result of creating the necessary connections between different neural layers. 
 
-The Neural Network model used for [botbrain](https://www.npmjs.com/package/botbrain) is [asynchronous](https://en.wikipedia.org/wiki/Asynchrony_(computer_programming)). Signal propagate across the network in the same manner as they would in an animal brain, one neuron at a time. Different shapes matter because they create resonance and oscillation patterns that are important for producing particular outputs to inputs in a time-dependent manner.
+The Neural Network model used for [botbrains](https://www.npmjs.com/package/botbrains) is [asynchronous](https://en.wikipedia.org/wiki/Asynchrony_(computer_programming)). Signal propagate across the network in the same manner as they would in an animal brain, one neuron at a time. Different shapes matter because they create resonance and oscillation patterns that are important for producing particular outputs to inputs in a time-dependent manner.
 
