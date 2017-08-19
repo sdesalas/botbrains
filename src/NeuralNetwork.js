@@ -128,22 +128,23 @@ class NeuralNetwork extends EventEmitter {
                     s.w = Utils.constrain(s.w, -0.5, 1);
                 });
         } else {
-            this.synapses.forEach(s => {
-                // Strengthen / weaken synapses that fired recently
-                // in proportion to how recently they fired
-                let recency = s.l - cutoff;
-                // If synapse hasnt fired then use inverse.
-                if (recency > 0) {
-                    s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
-                    // Make sure weight is between -0.5 and 1
-                    // Allow NEGATIVE weighing as real neurons do,
-                    // inhibiting onward connections in some cases.
-                    s.w = Utils.constrain(s.w, -0.5, 1);
-                }
-            });
+            // Decay synapses to allow new learning
+            this.decay(rate || opts.learningRate);
         }
-        // Decay synapses to allow new learning
-        return this.decay(Math.abs(rate || opts.learningRate));
+        this.synapses.forEach(s => {
+            // Strengthen / weaken synapses that fired recently
+            // in proportion to how recently they fired
+            let recency = s.l - cutoff;
+            // If synapse hasnt fired then use inverse.
+            if (recency > 0) {
+                s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
+                // Make sure weight is between -0.5 and 1
+                // Allow NEGATIVE weighing as real neurons do,
+                // inhibiting onward connections in some cases.
+                s.w = Utils.constrain(s.w, -0.5, 1);
+            }
+        });
+        return this;
     }
 
     // Negative reinforcement (to avoid recent neural pathways)
@@ -164,7 +165,7 @@ class NeuralNetwork extends EventEmitter {
         while(i--) {
             const s = synapses[i], 
                 decay = (s.w - stableLevel) * strength * rate;
-            s.w -= decay;
+            s.w -= decay * 5;
         }
         return this;
     }
