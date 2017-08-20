@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 class Random {
 
@@ -17,7 +17,7 @@ class Random {
             if (output.length > length) {
                 output = output.substr(0,length);
             }
-        } while (length > 0 && output.length < length)
+        } while (length > 0 && output.length < length);
         return output;
     }
 }

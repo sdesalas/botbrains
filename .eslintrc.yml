@@ -1,0 +1,24 @@
+env:
+  browser: true
+  es6: true
+  node: true
+extends: 'eslint:recommended'
+rules:
+  indent:
+    - error
+    - 4
+  linebreak-style:
+    - error
+    - unix
+  quotes:
+    - error
+    - single
+  semi:
+    - error
+    - always
+  strict:
+    - error
+  no-unused-vars:
+    - warn
+  prefer-const:
+    - warn

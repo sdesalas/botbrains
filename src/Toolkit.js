@@ -1,11 +1,8 @@
-"use strict";
+'use strict';
 
-const path = require('path');
 const http = require('http');
-const qs = require('querystring');
 const nodeStatic = require('node-static');
 const io = require('socket.io');
-const os = require('os');
 
 class Toolkit {
 
@@ -22,7 +19,7 @@ class Toolkit {
             this.io = io.listen(this.server);
             this.io.sockets.on('connection', this.connection.bind(this));
         }
-        return this.server
+        return this.server;
     }
 
     static connection(socket) {
