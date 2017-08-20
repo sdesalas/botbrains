@@ -1,4 +1,4 @@
-let botbrain = require('./');
+const botbrain = require('./');
 
 let network = new botbrain.NeuralNetwork(100, 'ring', { signalSpeed: 50 });
 let network2 = new botbrain.NeuralNetwork(100, 'ball');

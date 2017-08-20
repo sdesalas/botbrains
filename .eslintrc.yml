@@ -2,11 +2,12 @@ env:
   browser: true
   es6: true
   node: true
+  mocha: true
 extends: 'eslint:recommended'
 rules:
   indent:
     - error
-    - 4
+    - 2
   linebreak-style:
     - error
     - unix
@@ -17,7 +18,7 @@ rules:
     - error
     - always
   strict:
-    - error
+    - off
   no-unused-vars:
     - warn
   prefer-const:

@@ -1,6 +1,6 @@
-let botbrain = require('./');
+const botbrain = require('./');
 
-let network = new botbrain.NeuralNetwork(220, 'ball');
+const network = new botbrain.NeuralNetwork(220, 'ball');
 
 network.output([89,90]);
 //network.output(2);
