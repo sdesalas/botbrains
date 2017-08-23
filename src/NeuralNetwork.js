@@ -8,30 +8,30 @@ const Utils = require('./Utils');
 const DEFAULTS = {
   shape: 'tube',              // shaper function name in NetworkShaper.js
   connectionsPerNeuron: 4,    // average synapses per neuron
-  signalSpeed: 10,            // neurons per second
+  signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.01,         // max increase/decrease to connection strength when learning
+  learningRate: 0.05,         // max increase/decrease to connection strength when learning
 };
 
 class NeuralNetwork extends EventEmitter {
     
   /**
      * Initialize neural network
-     * Either using size or network definition
+     * Either using size or serialized version
      * ```
      * new NeuralNetwork(20);
      * new NeuralNetwork({ nodes: [
-     *   {id: 1, s: [{t: 1, w: 0.41}] },
-     *   {id: 2, s: [{t: 2, w: 0.020}, {t: 3, w: 0.135}] },
-     *   {id: 3, s: [{t: 5, w: 0.241}] },
-     *   {id: 4, s: [{t: 1, w: 0.02}] },
-     *   {id: 5, s: [{t: 6, w: 0.92}, {t: 2, w: 0.41}] },
-     *   {id: 6, s: [{t: 2, w: 0.41}] }
+     *   {id: 0, s: [{i: 1, w: 0.41}] },
+     *   {id: 1, s: [{i: 2, w: 0.020}, {t: 3, w: 0.135}] },
+     *   {id: 2, s: [{i: 5, w: 0.241}] },
+     *   {id: 3, s: [{i: 1, w: 0.02}] },
+     *   {id: 4, s: [{i: 6, w: 0.92}, {t: 2, w: 0.41}] },
+     *   {id: 5, s: [{i: 2, w: 0.41}] }
      * ]});
      * ```
-     * @param {*} size 
-     * @param {*} opts 
+     * @param {int|Object} size 
+     * @param {Object} opts 
      */
   constructor(size, opts) {
     super();
@@ -47,21 +47,17 @@ class NeuralNetwork extends EventEmitter {
     }
     else if (size && size.nodes && size.nodes instanceof Array) {
       // Initialize with exported network
-      let network = size;
+      const network = size;
       this.init(network.opts);
-      this.nodes = network.nodes.map((n, i) => {
-        let neuron = new Neuron(n.id, n.s, network.opts);
-        neuron.synapses.forEach(s => s.i = s.t);
-        return neuron;
-      });
-      this.inputSites = network.inputSites.slice();
-      this.outputSites = network.outputSites.slice();
+      this.nodes = network.nodes.map(n => new Neuron(n.id, n.s, network.opts));
+      this.inputSites = network.inputSites && network.inputSites.map(s => s.map(i => this.nodes[i])) || [];
+      this.outputSites = network.inputSites && network.outputSites.map(s => s.map(i => this.nodes[i])) || [];
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
       neuron.on('fire', (i, p) => this.emit('fire', i, p));
       // Add synapse ref pointers to corresponding target neurons
-      neuron.synapses.forEach(s => s.t = this.nodes[s.i]);
+      neuron.synapses.forEach(s => s.target = this.nodes[s.t]);
     });
   }
 
@@ -73,13 +69,13 @@ class NeuralNetwork extends EventEmitter {
       this.shaper = opts;
       this.opts = Object.assign({}, DEFAULTS);
       break;
-      // new NeuralNetwork(100, { learningRate: 0.5, shape: 'sausage' });
+    // new NeuralNetwork(100, { learningRate: 0.5, shape: 'sausage' });
     case 'object':
       this.shaper = NetworkShaper[opts.shape || DEFAULTS.shape];
       this.opts = Object.assign({}, DEFAULTS, opts);
       break;
-      // new NeuralNetwork(100);
-      // new NeuralNetwork(100, 'sausage');
+    // new NeuralNetwork(100);
+    // new NeuralNetwork(100, 'sausage');
     case 'undefined':
     case 'string':
       this.shaper = NetworkShaper[opts || DEFAULTS.shape];
@@ -105,7 +101,7 @@ class NeuralNetwork extends EventEmitter {
         s: node.synapses
           .slice()
         // Remove circular ref pointers
-          .map(s => Object({t: s.i, w: s.w}))
+          .map(s => Object({t: s.t, w: s.w}))
       })),
       opts: Object.assign({}, this.opts),
       // Clone array of arrays
@@ -147,7 +143,7 @@ class NeuralNetwork extends EventEmitter {
     this.synapses.forEach(s => {
       // Strengthen / weaken synapses that fired recently
       // in proportion to how recently they fired
-      let recency = s.l - cutoff;
+      const recency = s.l - cutoff;
       // If synapse hasnt fired then use inverse.
       if (recency > 0) {
         s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
@@ -254,7 +250,7 @@ class NeuralNetwork extends EventEmitter {
      * @param {int} index id of input site
      */
   input(data, index) {
-    let inputNodes = this.inputSites[index || 0] || this.inputSites[this.inputSite()];
+    const inputNodes = this.inputSites[index || 0] || this.inputSites[this.inputSite()];
     if (typeof data === 'number' && inputNodes && inputNodes.length) {
       // Distribute input signal across nodes
       const potential = Utils.constrain(data, 0, 1);
@@ -285,7 +281,7 @@ class NeuralNetwork extends EventEmitter {
           .reduce((pot, n) => pot + (n.isfiring ? n.potential/bits : 0), 0);
         observable.emit('data', potential);
         if (last !== potential) {
-          let diff = (last - potential) || undefined;
+          const diff = (last - potential) || undefined;
           observable.emit('change', potential, last, diff);
         }
         observable.lastValue = potential;
@@ -331,23 +327,23 @@ class NeuralNetwork extends EventEmitter {
      * @return {NeuralNetwork} resulting neural network
      */
   concat(network, at, surfaceArea) {
-    let clone = this.clone(); // default settings will be as per first network
-    let size = clone.size;
+    const clone = this.clone(); // default settings will be as per first network
+    const size = clone.size;
     if (network && network.nodes) {
       network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
       surfaceArea = surfaceArea || 0.05; // 5% nodes overlapping (bear in mind 4 synapses per node is 20% node overlap)
       at = at || 0.975; // where should we intersect? Beginning = 0, End = 1;
-      let fromPos = Math.floor(at*size - size*(surfaceArea/2));
-      let toPos = Math.ceil(at*size + size*(surfaceArea/2));
+      const fromPos = Math.floor(at*size - size*(surfaceArea/2));
+      const toPos = Math.ceil(at*size + size*(surfaceArea/2));
       clone.nodes.forEach((neuron, i) => {
         if (i >= fromPos && i <= toPos) {
-          let n = Neuron.generate(i, size, () => Random.integer(size, size * (1+surfaceArea)), clone.opts);
+          const n = Neuron.generate(i, size, () => Random.integer(size, size * (1+surfaceArea)), clone.opts);
           neuron.synapses.push(...n.synapses);
         }
       });
-      let nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
+      const nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
       clone.nodes.push(...nodes);
-      clone.synapses.forEach(s => s.t = clone.nodes[s.i]);
+      clone.synapses.forEach(s => s.target = clone.nodes[s.t]);
       clone.inputSites.push(...network.inputSites.map(arr => arr.map(n => clone.nodes[n.id + size])));
       clone.outputSites.push(...network.outputSites.map(arr => arr.map(n => clone.nodes[n.id + size])));
       nodes.forEach(n => n.on('fire', (i, p) => clone.emit('fire', i, p)));
@@ -362,7 +358,7 @@ class NeuralNetwork extends EventEmitter {
 
   /** Percentage of active synapses in network */
   get strength() {
-    let synapses = this.synapses;
+    const synapses = this.synapses;
     return synapses.filter(s => s.w > this.opts.signalFireThreshold).length / synapses.length;
   }
 
@@ -382,18 +378,24 @@ class Neuron extends EventEmitter {
     this.opts = opts || DEFAULTS;
   }
 
-  // Generates a neuron
+  /**
+   * Generates a neuron
+   * @param {int} index position of neuron in network
+   * @param {int} size network size (total neurons)
+   * @param {Function} shaper function used for shaping onward connections
+   * @param {Object} opts network options
+   */
   static generate(index, size, shaper, opts) {
     // Number of synapses are random based on average
-    let synapses = new Array(Random.integer(1, opts.connectionsPerNeuron * 2 - 1))
+    const synapses = new Array(Random.integer(1, opts.connectionsPerNeuron * 2 - 1))
       .fill()
       .map(() => {
-        let i = shaper(index, size),
-          // weight is between -0.5 and 1, averaging around 0.25
-          w = -0.5 + Math.random() * 1.5;
+        const t = shaper(index, size),
+          // weight is between -0.5 and 1, gaussian distribution around 0.25
+          w = -0.5 + Random.gaussian() * 1.5;
 
-        if (i) {
-          return { i, w }; // index, weight
+        if (t) {
+          return { t, w }; // index, weight
         }
         // Cannot find suitable target
         return null;
@@ -402,16 +404,20 @@ class Neuron extends EventEmitter {
     return new Neuron(index, synapses, opts);
   }
 
-  // Clones a neuron, useful when concatenating networks
+  /**
+   * Clones a neuron, useful when concatenating networks
+   * @param {Object} overrides properties to override in resulting neuron
+   * @param {int} offset number used to offset neuron id by 
+   */
   clone(overrides, offset) {
     overrides = overrides || {};
     offset = offset || 0;
-    let synapses = this.synapses.map(s => Object.assign({}, s, { i: offset + s.i }));
-    let neuron = new Neuron(offset + this.id, synapses, this.opts);
+    const synapses = this.synapses.map(s => Object.assign({}, s, { t: offset + s.t }));
+    const neuron = new Neuron(offset + this.id, synapses, this.opts);
     return Object.assign(neuron, overrides);
   }
 
-  // Should be optimised as this gets executed very frequently.
+  /** Should be optimised as this gets executed very frequently. */ 
   fire(potential) {
     if (this.isfiring) return false;
     const opts = this.opts;
@@ -431,8 +437,8 @@ class Neuron extends EventEmitter {
         // Attempt firing onward connections
         let i = this.synapses.length;
         while(i--) {
-          let s = this.synapses[i];
-          if (s && s.t && s.t.fire(s.w)) {
+          const s = this.synapses[i];
+          if (s && s.target && s.target.fire((s.w + potential) / 2)) {
             // Time synapse last fired is important
             // to learn from recent past
             s.l = new Date().getTime();

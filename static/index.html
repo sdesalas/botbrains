@@ -32,12 +32,12 @@
 					network = new botbrain.NeuralNetwork(data);
 					let inputNodes = network.inputSites.reduce((acc, c) => acc.concat(c), []);
 					let outputNodes = network.outputSites.reduce((acc, c) => acc.concat(c), []);
-					let nodes = network.nodes.map(node => ({ id: node.id, color: outputNodes.indexOf(node.id) + 1 ? '#ff0000' : (inputNodes.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
-					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.t).map(s => ({ source: n.id, target: s.t.id, opacity: s.w }))), []);
-					console.log({ network, inputNodes })
+					let nodes = network.nodes.map(node => ({ id: node.id, color: outputNodes.indexOf(node) + 1 ? '#ff0000' : (inputNodes.indexOf(node) + 1 ? '#0000ff' : undefined) }));
+					let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.target).map(s => ({ source: n.id, target: s.target.id, opacity: s.w }))), []);
+					console.log({ network, inputNodes });
 
 					const Graph = ForceGraph3D()(document.getElementById('main'));
-					let cooldown = Math.round(100 * (300 - network.size));
+					let cooldown = Math.round(10 * (300 - network.size));
 					if (cooldown < 0) cooldown = 0;
 
 					Graph

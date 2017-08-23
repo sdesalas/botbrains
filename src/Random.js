@@ -20,6 +20,16 @@ class Random {
     } while (length > 0 && output.length < length);
     return output;
   }
+
+  // Random between 0 and 1 with gaussian distribution
+  static gaussian(tightness) {
+    tightness = tightness || 6;
+    var output = 0;
+    for(var i = 0; i < tightness; i++)  {
+      output += Math.random();
+    }
+    return output / tightness;
+  }
 }
 
 module.exports = Random;
