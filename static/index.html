@@ -3,9 +3,13 @@
 	<head>
 		<meta charset="utf-8">
 		<style>
-			body { background-color: #000; margin: 0; overflow: hidden; font-family: Tahoma, Helvetica, Arial; }
+			body { background-color: #000; margin: 0; overflow: hidden; font-family: Tahoma, Helvetica, Arial; user-select: none; }
 			nav { position: absolute; top: 40%; text-align: center; opacity: 0.5; }
 			nav:hover { opacity: 1; }
+			#stats { width: 100%; position: absolute; color: white; padding: 20px;}
+			#stats dl { display: block; float: left; width: 16%; text-align: center;}
+			#stats dt { display: block; font-size: 14pt; font-weight: bold; opacity: 0.8; }
+			#stats dd { display: block; margin: 0; font-size: 8pt; line-height: 15px; opacity: 0.5; }
 			#left { left: 40px; }
 			#right { right: 40px; }
 			a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 18px; }
@@ -20,10 +24,29 @@
 	<body>
 		<nav id="left"><a href="javascript:;" onclick="if (socket) { socket.emit('learn'); }"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a></nav>
 		<nav id="right"><a href="javascript:;" onclick="if (socket) { socket.emit('unlearn'); }"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a></nav>
+		<section id="stats">
+			<dl><dt id="nodes">-</dt>
+				<dd>nodes</dd></dl>
+			<dl><dt id="synapses">-</dt>
+				<dd>synapses</dd></dl>
+			<dl><dt id="weight">--%</dt>
+				<dd>weight</dd></dl>
+			<dl><dt id="strength">--%</dt>
+				<dd>strength</dd></dl>
+			<dl><dt id="inputs">-</dt>
+				<dd>inputs (<span style="font-size:10pt;color:blue">&#x2022</span>)</dd></dl>
+			<dl><dt id="outputs">-</dt>
+				<dd>outputs (<span style="font-size:10pt;color:red">&#x2022</span>)</dd></dl>
+		</section>
 		<div id="main"></div>
 		<script>
 
-            let graphData, network, socket = io();
+			let graphData, network, socket = io();
+			dom = ['nodes', 'synapses', 'strength', 'weight', 'inputs', 'outputs']
+				.reduce((acc, id) => {
+					acc[id] = document.getElementById(id);
+					return acc;
+				}, {});
 
             socket.on('connection', data => {
 				console.log('connection', data);
@@ -37,12 +60,10 @@
 					console.log({ network, inputNodes });
 
 					const Graph = ForceGraph3D()(document.getElementById('main'));
-					let cooldown = Math.round(10 * (300 - network.size));
-					if (cooldown < 0) cooldown = 0;
 
 					Graph
 						.warmupTicks(120)
-						.cooldownTicks(cooldown)
+						.cooldownTicks(0)
 						.sphereColor(0x8fe7ff)
 						//.highlightItems(true)
 						.forceEngine('ngraph')
@@ -80,6 +101,12 @@
 				if (data && graphData) {
 					let lines = graphData.links.map(l => l.__line);
 					let newNetwork = new botbrain.NeuralNetwork(data);
+					dom.nodes.innerText = newNetwork.nodes.length;
+					dom.synapses.innerText = newNetwork.synapses.length;
+					dom.strength.innerText = Math.round(newNetwork.strength * 100) + '%';
+					dom.weight.innerText = Math.round(newNetwork.weight * 100) + '%';
+					dom.inputs.innerText = newNetwork.inputSites.length;
+					dom.outputs.innerText = newNetwork.outputSites.length;
 					newNetwork.synapses.forEach((s, i) => lines[i].material.opacity = s.w);
 				}
 			});

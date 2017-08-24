@@ -27,7 +27,8 @@ class Toolkit {
     this.network.on('fire', (id, potential) => socket.emit('fire', id) && this.verbose && console.log(`firing ${id} with potential ${potential}`));
     socket.on('learn', () => socket.emit('update', this.network.learn().export()) && this.verbose && console.log('learn', this.network.synapses[0].w));
     socket.on('unlearn', () => socket.emit('update', this.network.unlearn().export()) && this.verbose && console.log('unlearn', this.network.synapses[0].w));
-    setInterval(() => socket.emit('update', this.network.export()), 1000);
+    setInterval(() => socket.emit('update', this.network.export()), 3000);
+    socket.emit('update', this.network.export());
   }
 
   static visualise(network, port) {

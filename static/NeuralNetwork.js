@@ -460,7 +460,7 @@ const DEFAULTS = {
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.05,         // max increase/decrease to connection strength when learning
+  learningRate: 0.04,         // max increase/decrease to connection strength when learning
 };
 
 class NeuralNetwork extends events {
@@ -549,7 +549,7 @@ class NeuralNetwork extends events {
         id: node.id,
         s: node.synapses
           .slice()
-        // Remove circular ref pointers
+          // Remove circular ref pointers, use long term synapse weight
           .map(s => Object({t: s.t, w: s.w}))
       })),
       opts: Object.assign({}, this.opts),
@@ -563,6 +563,7 @@ class NeuralNetwork extends events {
      * Reinforces/weakens synapses that fired recently
      * ```
      * network.learn();    // Do more of something in recent past
+     * network.learn(-1):  // Do less of something in recent past
      * network.learn(0.1); // Same with 10% strength
      * ```
      * @param {float} [rate=1] rate of learning (betweent 0 and 1)
@@ -572,6 +573,7 @@ class NeuralNetwork extends events {
     const now = new Date().getTime();
     const learningPeriod = this.opts.learningPeriod;
     const cutoff = now - learningPeriod;
+    rate = Utils_1.constrain(isNaN(rate) ? 1 : rate, -1, 1);
 
     if (rate < 0) {
       // When something bad has happened, the lack of synapses
@@ -582,20 +584,20 @@ class NeuralNetwork extends events {
         .filter(s => Math.random() < 0.05) // random 5% only
         .forEach(s => {
           // Strengthen by learning rate
-          s.w += -1 * (rate * opts.learningRate || opts.learningRate);
+          s.w += -1 * rate * opts.learningRate;
           s.w = Utils_1.constrain(s.w, -0.5, 1);
         });
-    } else {
-      // Decay synapses to allow new learning
-      this.decay(rate || opts.learningRate);
     }
+    // Decay synapses to allow new learning
+    this.decay(rate);
+    //}
+    // Strengthen / weaken synapses that fired recently
+    // in proportion to how recently they fired
     this.synapses.forEach(s => {
-      // Strengthen / weaken synapses that fired recently
-      // in proportion to how recently they fired
       const recency = s.l - cutoff;
       // If synapse hasnt fired then use inverse.
       if (recency > 0) {
-        s.w += (recency / learningPeriod) * (rate * opts.learningRate || opts.learningRate);
+        s.w += (recency / learningPeriod) * (rate * opts.learningRate);
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
@@ -624,15 +626,18 @@ class NeuralNetwork extends events {
      * @param {float} [rate=1] rate of decay, between 0 and 1 
      */
   decay(rate) {
-    const strength = this.strength;
+    const overload = Utils_1.constrain(this.strength * rate, 0, 1);
     const synapses = this.synapses;
     const stableLevel = this.opts.signalFireThreshold / 2;
     // Use fast recursion (instead of Array.prototype.forEach)
     let i = synapses.length;
     while(i--) {
       const s = synapses[i], 
-        decay = (s.w - stableLevel) * strength * rate;
-      s.w -= decay * 5;
+        avgWeight = (s.w + s.ltw) / 2;
+      // short term weight decays fast
+      s.w = overload * stableLevel + (1-overload) * avgWeight;
+      // long term weight decays slowly
+      s.ltw = s.ltw * 3/4 + avgWeight * 1/4;
     }
     return this;
   }
@@ -811,6 +816,12 @@ class NeuralNetwork extends events {
     return synapses.filter(s => s.w > this.opts.signalFireThreshold).length / synapses.length;
   }
 
+  /** Average weight of the network */
+  get weight() {
+    const synapses = this.synapses;
+    return synapses.reduce((acc, s) => acc + s.w, 0) / synapses.length;
+  }
+
   /** Array of synapses */
   get synapses() {
     return this.nodes.reduce((acc, node) => acc.concat(node.synapses), []);
@@ -839,12 +850,14 @@ class Neuron extends events {
     const synapses = new Array(Random_1.integer(1, opts.connectionsPerNeuron * 2 - 1))
       .fill()
       .map(() => {
+        // target is defined by shaper function
         const t = shaper(index, size),
-          // weight is between -0.5 and 1, gaussian distribution around 0.25
-          w = -0.5 + Random_1.gaussian() * 1.5;
+          // weight is between -0.5 and 0.75, gaussian distribution around 0.125
+          w = -0.5 + Random_1.gaussian() * 1.25;
 
         if (t) {
-          return { t, w }; // index, weight
+          // index, weight, long term weight
+          return { t, w, ltw: w }; 
         }
         // Cannot find suitable target
         return null;
