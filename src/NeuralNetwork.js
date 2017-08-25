@@ -11,7 +11,7 @@ const DEFAULTS = {
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.04,         // max increase/decrease to connection strength when learning
+  learningRate: 0.1,          // max % increase/decrease to synapse strength when learning
 };
 
 class NeuralNetwork extends EventEmitter {
@@ -140,7 +140,7 @@ class NeuralNetwork extends EventEmitter {
         });
     }
     // Decay synapses to allow new learning
-    this.decay(rate);
+    this.decay(rate * opts.learningRate);
     //}
     // Strengthen / weaken synapses that fired recently
     // in proportion to how recently they fired
@@ -148,7 +148,7 @@ class NeuralNetwork extends EventEmitter {
       const recency = s.l - cutoff;
       // If synapse hasnt fired then use inverse.
       if (recency > 0) {
-        s.w += (recency / learningPeriod) * (rate * opts.learningRate);
+        s.w *= 1 + (recency / learningPeriod) * (rate * opts.learningRate);
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
@@ -177,7 +177,7 @@ class NeuralNetwork extends EventEmitter {
      * @param {float} [rate=1] rate of decay, between 0 and 1 
      */
   decay(rate) {
-    const overload = Utils.constrain(this.strength * rate, 0, 1);
+    const strength = (1-Math.pow(1-this.strength, 6)) * Math.abs(rate);
     const synapses = this.synapses;
     const stableLevel = this.opts.signalFireThreshold / 2;
     // Use fast recursion (instead of Array.prototype.forEach)
@@ -186,7 +186,7 @@ class NeuralNetwork extends EventEmitter {
       const s = synapses[i], 
         avgWeight = (s.w + s.ltw) / 2;
       // short term weight decays fast
-      s.w = overload * stableLevel + (1-overload) * avgWeight;
+      s.w = strength * stableLevel + (1-strength) * avgWeight;
       // long term weight decays slowly
       s.ltw = s.ltw * 3/4 + avgWeight * 1/4;
     }
@@ -451,7 +451,7 @@ class Neuron extends EventEmitter {
         let i = this.synapses.length;
         while(i--) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.w + potential) / 2)) {
+          if (s && s.target && s.target.fire((s.w + potential) / 2).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
             s.l = new Date().getTime();

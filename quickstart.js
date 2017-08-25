@@ -1,6 +1,6 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(200, 'sausage');
+const network = new botbrain.NeuralNetwork(600, 'ring');
 
 network.output([90,92]);
 //network.output(2);
