@@ -7,8 +7,14 @@
         {
             "type": "node",
             "request": "launch",
+            "name": "quickstart",
+            "program": "${workspaceRoot}/quickstart.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
             "name": "quickstart2",
-            "program": "${workspaceRoot}\\quickstart2.js"
+            "program": "${workspaceRoot}/quickstart2.js"
         }
     ]
 }
