@@ -3,39 +3,77 @@
 const http = require('http');
 const nodeStatic = require('node-static');
 const io = require('socket.io');
+const osUtils = require('os-utils');
+const os = require('os');
 
 class Toolkit {
-
-  static serve(port) {
-    if (!this.server) {
-      let ns = new nodeStatic.Server(__dirname + '/../static');
-      this.server = http.createServer((request, response) => {
-        request.on('end', () => ns.serve(request, response)).resume();
-      });
-      this.server.listen(port);
-      if (this.io) {
-        this.io.disconnect() || this.io.close();
-      }
-      this.io = io.listen(this.server);
-      this.io.sockets.on('connection', this.connection.bind(this));
-    }
-    return this.server;
-  }
-
-  static connection(socket) {
-    socket.emit('connection', this.network && this.network.export());
-    this.network.on('fire', (id, potential) => socket.emit('fire', id) && this.verbose && console.log(`firing ${id} with potential ${potential}`));
-    socket.on('learn', () => socket.emit('update', this.network.learn().export()) && this.verbose && console.log('learn', this.network.synapses[0].w));
-    socket.on('unlearn', () => socket.emit('update', this.network.unlearn().export()) && this.verbose && console.log('unlearn', this.network.synapses[0].w));
-    setInterval(() => socket.emit('update', this.network.export()), 3000);
-    socket.emit('update', this.network.export());
-  }
 
   static visualise(network, port) {
     if (network) {
       this.network = network;
       return this.serve(port || 8811);
     }
+  }
+
+  static serve(port) {
+    if (!this.server) {
+      const staticServer = new nodeStatic.Server(__dirname + '/../static');
+      this.server = http.createServer((request, response) => {
+        request.on('end', () => staticServer.serve(request, response)).resume();
+      }).listen(port);
+      if (this.io) {
+        this.io.disconnect() || this.io.close();
+      }
+      this.io = io.listen(this.server);
+      this.io.sockets.on('connection', this.onConnection.bind(this));
+    }
+    return this.server;
+  }
+
+  static onConnection(socket) {
+    socket.emit('connection', this.network && this.network.export());
+    // Track neuron change reactions, using 'volatile' mode
+    this.network.on('fire', (id, potential) => socket.volatile.emit('fire', id) && this.verbose && console.log(`Firing ${id} with potential ${potential}`));
+    // Handle incoming events
+    ['learn', 'unlearn'].forEach(event => {
+      socket.on(event, data => this.handle(socket, event, data));
+    });
+    // Polling to keep client updated of the state of the network
+    setInterval(() => this.getStats(stats => socket.emit('stats', stats)), 200);
+    setInterval(() => this.checkUpdate(socket, this.network.weight), 1000);
+    this.checkUpdate(socket, this.network.weight);
+  }
+
+  static handle(socket, event, data) {
+    if (this.verbose) console.log(`Toolkit.handle(socket, ${event})`);
+    switch(event) {
+    case 'learn':
+      this.network.learn();
+      return;
+    case 'unlearn':
+      this.network.unlearn();
+      return;
+    }
+  }
+
+  static checkUpdate(socket, weight) {
+    // Send event, but only if the network has changed
+    if (!this.lastWeight || this.lastWeight !== weight) {
+      this.lastWeight = weight;
+      socket.emit('update', this.network.export());
+    }
+  }
+
+  static getStats(callback) {
+    osUtils.cpuUsage(cpu => {
+      const totalmem = os.totalmem();
+      const usedmem = totalmem - os.freemem();
+      const mem = usedmem/totalmem;
+      callback({
+        cpu: Number(cpu.toFixed(2)),
+        mem: Number(mem.toFixed(2))
+      });
+    });
   }
 
 }
