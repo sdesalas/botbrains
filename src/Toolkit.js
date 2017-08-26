@@ -11,6 +11,7 @@ class Toolkit {
   static visualise(network, port) {
     if (network) {
       this.network = network;
+      this.network.on('fire', (id, potential) => this.verbose && console.log(`Firing ${id} with potential ${potential}`));
       return this.serve(port || 8811);
     }
   }
@@ -33,7 +34,7 @@ class Toolkit {
   static onConnection(socket) {
     socket.emit('connection', this.network && this.network.export());
     // Track neuron change reactions, using 'volatile' mode
-    this.network.on('fire', (id, potential) => socket.volatile.emit('fire', id) && this.verbose && console.log(`Firing ${id} with potential ${potential}`));
+    this.network.on('fire', id => socket.volatile.emit('fire', id));
     // Handle incoming events
     ['learn', 'unlearn'].forEach(event => {
       socket.on(event, data => this.handle(socket, event, data));
