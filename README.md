@@ -40,22 +40,22 @@ $ npm install botbrains
 
 ### robot.js
 ```js
-var five = require("johnny-five");
-var botbrains = require("botbrains");
+const five = require('johnny-five');
+const botbrains = require('botbrains');
 
-var board = new five.Board({port: process.argv[2] || "" });
+const board = new five.Board({port: process.argv[2] || '' });
 
-board.on("ready", function() {
+board.on('ready', () => {
 
-    var network = new botbrains.NeuralNetwork(32);
+    const network = new botbrains.NeuralNetwork(32);
 
     // PROXIMITY SENSOR INPUT (pin A6)
-    var sensor = new five.Sensor({ pin: "A6", freq: 200 });
-    sensor.on("change", () => network.input('Proximity')(sensor.value / 1024));
+    const sensor = new five.Sensor({ pin: 'A6', freq: 200 });
+    sensor.on('change', () => network.input('Proximity')(sensor.value / 1024));
 
     // MOTOR OUTPUT (pins D6-D8)
-    var left_motor = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
-    var right_motor = new five.Motor({ pins: { pwm: 9, dir: 8, }, invertPWM: true, });
+    const left_motor = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
+    const right_motor = new five.Motor({ pins: { pwm: 9, dir: 8, }, invertPWM: true, });
 
     // Output binding can be reasonably random.
     // It doesn't matter what gets mapped to what
@@ -63,23 +63,23 @@ board.on("ready", function() {
     // using positive and negative feedback.
 
     network.output('Wheel (L)')
-        .on("data", (power) => { // between 0 and 1
-            var speed = Math.floor(power * 255);
+        .on('data', (power) => { // between 0 and 1
+            const speed = Math.floor(power * 255);
             if (power > 0.25) left_motor.forward(speed);
             else left_motor.stop();
         });
 
 
     network.output('Wheel (R)')
-        .on("data", (power) => { // between 0 and 1
-            var speed = Math.floor(power * 255);
+        .on('data', (power) => { // between 0 and 1
+            const speed = Math.floor(power * 255);
             if (power > 0.25) right_motor.forward(speed);
             else right_motor.stop();
         });
 
     // DISPLAY VIA LOCAHOST (http.Server)
-    var server = botbrains.Toolkit.visualise(network);
-    var address = server.address();
+    const server = botbrains.Toolkit.visualise(network);
+    const address = server.address();
 
     console.log('Bot brain ready for interaction. Please open http://localhost:' + address.port);
 
@@ -234,20 +234,20 @@ Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-const ball = new NeuralNetwork(100, (neuron, size) => Math.floor(Math.random() * size));
+const ball = new NeuralNetwork(100, (neuron, size, synapse) => Math.floor(Math.random() * size));
 ```
 
 Another more complex example:
 
 ```js
 // Ring shape
-const ring = new NeuralNetwork(100, function(neuron, size) {
-  var target, thickness = Math.ceil(size / 20);
-  var offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
+const ring = new NeuralNetwork(100, (neuron, size, synapse) => {
+  const thickness = Math.ceil(size / 20);
+  const offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
   for (var tries = 0; tries < 3; tries++) {
-    var from = -1 * thickness + offset;
-    var to = thickness + offset;
-    target = Random.integer(from, to);
+    const from = -1 * thickness + offset;
+    const to = thickness + offset;
+    const target = Random.integer(from, to);
     if (target >= size) {
       return target - size; // Link to beginning
     }
