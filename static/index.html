@@ -6,8 +6,14 @@
     body { background-color: #000; margin: 0; overflow: hidden; font-family: Tahoma, Helvetica, Arial; user-select: none; }
     nav { position: absolute; top: 40%; text-align: center; opacity: 0.5; }
     nav:hover { opacity: 1; }
+    #app { display: none; }
+    #closeup { position: absolute; width: 120px; color: #999; background: rgba(80, 80, 80, 0.3); font-size: 10px; top: 10px; right: 10px; padding: 10px; }
+    #closeup div { color: white; }
+    #closeup div span { float: right; cursor: pointer; }
+    #closeup ul { margin: 10px 0 0; padding: 0; }
+    #closeup ul li { padding: 0; list-style: none; display: block; }
     #stats { position: absolute; width: 140px; color: white; font-weight: bold; padding: 20px; }
-    #stats dl { position: relative; display: block; height: 13px; width: 100%; background: #333; margin: 0 0 10px; }
+    #stats dl { position: relative; display: block; height: 13px; width: 100%; background: rgba(120, 120, 120, 0.3); margin: 0 0 10px; }
     #stats dd { position: absolute; width: 0%; height: 13px; background: #3f6674; margin: 0; }
     #stats dt { position: absolute; font-size: 10px; padding: 0 3px; }
     #info { width: 100%; position: absolute; color: white; padding: 20px; bottom: 0; }
@@ -21,95 +27,124 @@
     #right .fa { color: red; display: block; }
   </style>
   <link href="./lib/font-awesome.css" rel="stylesheet" type="text/css">
-  <script src="./lib/3d-force-graph.min.js">
-  </script>
-  <script src="./lib/socket.io.js">
-  </script>
-  <script src="./NeuralNetwork.js">
-  </script>
-  <title></title>
+  <script src="./lib/3d-force-graph.min.js"></script>
+  <script src="./lib/vue-2.4.2.min.js"></script>
+  <script src="./lib/socket.io.js"></script>
+  <script src="./NeuralNetwork.js"></script>
+  <title>botbrains :: NeuralNetwork Visualization</title>
 </head>
 <body>
-  <nav id="left">
-    <a href="javascript:;" onclick="if (UI.socket) { UI.socket.emit('learn'); }"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a>
-  </nav>
-  <nav id="right">
-    <a href="javascript:;" onclick="if (UI.socket) { UI.socket.emit('unlearn'); }"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a>
-  </nav>
-  <section id="stats">
-    <dl>
-      <dd id="cpu">&nbsp;</dd>
-      <dt>CPU</dt>
-    </dl>
-    <dl>
-      <dd id="mem">&nbsp;</dd>
-      <dt>MEM</dt>
-    </dl>
-  </section>
-  <section id="info">
-    <dl>
-      <dd id="nodes">-</dd>
-      <dt>nodes</dt>
-    </dl>
-    <dl>
-      <dd id="synapses">-</dd>
-      <dt>synapses</dt>
-    </dl>
-    <dl>
-      <dd id="weight">--%</dd>
-      <dt>weight</dt>
-    </dl>
-    <dl>
-      <dd id="strength">--%</dd>
-      <dt>strength</dt>
-    </dl>
-    <dl>
-      <dd id="inputs">-</dd>
-      <dt>inputs (<span style="font-size:10pt;color:blue">&#x2022</span>)</dt>
-    </dl>
-    <dl>
-      <dd id="outputs">-</dd>
-      <dt>outputs (<span style="font-size:10pt;color:red">&#x2022</span>)</dt>
-    </dl>
-  </section>
-  <div id="main"></div>
+  <div id="app" :style="{ display: initialized ? 'block' : 'none' }">
+    <nav id="left">
+      <a href="javascript:;" v-on:click="socket.emit('learn')"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a>
+    </nav>
+    <nav id="right">
+      <a href="javascript:;" v-on:click="socket.emit('unlearn')"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a>
+    </nav>
+    <section id="stats">
+      <dl>
+        <dd :style="{ width: cpu + '%' }">&nbsp;</dd>
+        <dt>CPU</dt>
+      </dl>
+      <dl>
+        <dd :style="{ width: mem + '%' }">&nbsp;</dd>
+        <dt>MEM</dt>
+      </dl>
+    </section>
+    <section id="closeup" v-show="closeup.display">
+      <div><label>Neuron # {{closeup.neuron}}</label> <span v-on:click="closeup.display = false">x</span></div>
+      <ul>
+        <li v-for="(synapse, i) in closeup.synapses">{{i}}: => # {{synapse.t}} ({{synapse.w.toFixed(4)}})</li>
+      </ul>
+    </section>
+    <section id="info">
+      <dl>
+        <dd>{{nodes}}</dd>
+        <dt>nodes</dt>
+      </dl>
+      <dl>
+        <dd>{{synapses}}</dd>
+        <dt>synapses</dt>
+      </dl>
+      <dl>
+        <dd>{{weight}}</dd>
+        <dt>weight</dt>
+      </dl>
+      <dl>
+        <dd>{{strength}}</dd>
+        <dt>strength</dt>
+      </dl>
+      <dl>
+        <dd>{{inputs}}</dd>
+        <dt>inputs (<span style="font-size:10pt;color:blue">&#x2022</span>)</dt>
+      </dl>
+      <dl>
+        <dd>{{outputs}}</dd>
+        <dt>outputs (<span style="font-size:10pt;color:red">&#x2022</span>)</dt>
+      </dl>
+    </section>
+  </div>
+  <div id="graph"></div>
   <script>
 
-    var UI = { dom: {} };
+    var UI = new Vue({
+      el: '#app',
+      data: {
+        initialized: true,
+        cpu: 0,
+        mem: 0,
+        nodes: '-',
+        synapses: '-',
+        weight: '--%',
+        strength: '--%',
+        inputs: '-',
+        outputs: '-',
+        closeup: {
+          display: false,
+          neuron: 56,
+          synapses: [{ t: 67, w: 0.342523}, {t: 59, w: -0.13199}]
+        },
+        socket: io(),
+        network: null,
+        graphData: null
+      },
+      methods: {},
+      mounted: function() {
+        this.socket.on('connection', data => {
+          console.log('connection', data);
+          if (data) {
+            this.network = new botbrain.NeuralNetwork(data); 
+            this.signalRecovery = 5000 / this.network.opts.signalSpeed;
+            this.updateNetwork();
+            this.visualise();
+          }
+        });
 
-    UI.loadElements = function() {
-      var id;
-      for (var i = 0; i < arguments.length; i++) {
-        id = arguments[i];
-        UI.dom[id] = document.getElementById(id);
+        this.socket.on('fire', id => this.fire(id));
+        this.socket.on('stats', stats => this.updateStats(stats));
+        this.socket.on('update', data => {
+          console.log('update', data);
+          if (data) {
+            this.network = new botbrain.NeuralNetwork(data);
+            this.signalRecovery = 5000 / this.network.opts.signalSpeed;
+            this.updateNetwork();
+          }
+        });
       }
-    };
-    
-    UI.loadElements('main', 'cpu', 'mem', 'nodes', 'synapses', 'strength', 'weight', 'inputs', 'outputs');
+    });
 
-    UI.update = (network, stats) => { 
-      if (network) {
-        UI.dom.nodes.innerText = network.nodes.length;
-        UI.dom.synapses.innerText = network.synapses.length;
-        UI.dom.strength.innerText = Math.round(network.strength * 100) + '%';
-        UI.dom.weight.innerText = Math.round(network.weight * 100) + '%';
-        UI.dom.inputs.innerText = network.inputSites.length;
-        UI.dom.outputs.innerText = network.outputSites.length;
-      }
-      if (stats) {
-        UI.dom.cpu.style.width = Math.round(stats.cpu * 100) + '%';
-        UI.dom.mem.style.width = Math.round(stats.mem * 100) + '%';
-      }
-    }
+    UI.visualise = function() {
 
-    UI.visualise = (network) => {
-      let inputNodes = network.inputSites.reduce((acc, c) => acc.concat(c), []);
-      let outputNodes = network.outputSites.reduce((acc, c) => acc.concat(c), []);
-      let nodes = network.nodes.map(node => ({ id: node.id, color: outputNodes.indexOf(node) + 1 ? '#ff0000' : (inputNodes.indexOf(node) + 1 ? '#0000ff' : undefined) }));
+      let network = this.network;
+      let inputs = Object.keys(network.inputs).reduce((acc, k) => acc.concat(network.inputs[k]), []);
+      let inputLabels = network.nodes.map(node => Object.keys(network.inputs).find(k => network.inputs[k].indexOf(node) > -1));
+      let outputs = Object.keys(network.outputs).reduce((acc, k) => acc.concat(network.outputs[k]), []);
+      let outputLabels = network.nodes.map(node => Object.keys(network.outputs).find(k => network.outputs[k].indexOf(node) > -1));
+      let nodes = network.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node) + 1 ? '#ff0000' : (inputs.indexOf(node) + 1 ? '#0000ff' : undefined) }));
       let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.target).map(s => ({ source: n.id, target: s.target.id, opacity: s.w }))), []);
-      console.log({ network, inputNodes });
+      console.log({ network, inputs, outputs });
 
-      const Graph = ForceGraph3D()(UI.dom.main);
+      const Graph = ForceGraph3D()(document.getElementById('graph'));
 
       Graph
         .warmupTicks(120)
@@ -119,68 +154,68 @@
         .forceEngine('ngraph')
         .graphData({ nodes, links })
         .nodeRelSize(5)
-        .onReady(graph => UI.graphData = graph.graphData)
-        .onClick(x => console.log('click', {x}));
+        .onReady(graph => this.graphData = graph.graphData)
+        .onClick(x => this.focus(x));
 
-      console.log({ graphData: UI.graphData, links: UI.graphData.links });
-    }
+      console.log({ graphData: this.graphData, links: this.graphData.links });
+    };
 
-    (function() {
-
-      UI.socket = io();
-
-      UI.socket.on('connection', data => {
-        console.log('connection', data);
-
-        if (data) {
-          let network = new botbrain.NeuralNetwork(data);
-          UI.network = network; 
-          UI.update(network);
-          UI.visualise(network);
-        }
-
-      });
-
-      UI.socket.on('fire', id => {
-        //console.log('fire', id);
-        if (UI.graphData) {
-          let node = UI.graphData.nodes[id];
-          let signalRecovery = 5000 / UI.network.opts.signalSpeed;
-          if (node && node.__sphere) {
-            let material = node.__sphere.material;
-            let oldColor = material.color;
-            let fireColor = new THREE.Color(0xffffff);
-            material.color = fireColor;
-            material.opacity = 1;
-            setTimeout(() => {
-              material.color = oldColor;
-              material.opacity = 0.6;
-            }, signalRecovery);
-          }
-        }
-      });
-
-      UI.socket.on('stats', stats => UI.update(null, stats));
-
-      UI.socket.on('update', data => {
-        // Update synapses
-        const graphData = UI.graphData;
-        console.log('update', { data, graphData });
-        let network = new botbrain.NeuralNetwork(data);
-        if (data && graphData) {
+    UI.updateNetwork = function() {
+      const network = this.network; 
+      const graphData = this.graphData;
+      //console.log('updateNetwork', { network, graphData });
+      if (network) {
+        if (graphData) { // update synapses
           let lines = graphData.links.map(l => l.__line);
           network.synapses.forEach((s, i) => {
-            let line = lines[i];
-            if (!line) {
-              debugger;
-            }
-            line.material.opacity = s.w
+            lines[i].material.opacity = s.w
           });
         }
-        UI.update(network);
-      });
+        // Update measurements
+        this.nodes = network.nodes.length;
+        this.synapses = network.synapses.length;
+        this.strength = Math.round(network.strength * 100) + '%';
+        this.weight = Math.round(network.weight * 100) + '%';
+        this.inputs = Object.keys(network.inputs).length;
+        this.outputs = Object.keys(network.inputs).length;
+      }
+    };
 
-    })();
+    UI.updateStats = function(stats) {
+      if (stats) {
+        this.cpu = Math.round(stats.cpu * 100);
+        this.mem = Math.round(stats.mem * 100);
+      }
+    }
+
+    UI.fire = function(id) {
+      const node = this.graphData && this.graphData.nodes && this.graphData.nodes[id];
+      if (node && node.__sphere) {
+        let material = node.__sphere.material;
+        let oldColor = material.color;
+        let fireColor = new THREE.Color(0xffffff);
+        material.color = fireColor;
+        material.opacity = 1;
+        setTimeout(() => {
+          material.color = oldColor;
+          material.opacity = 0.6;
+        }, this.signalRecovery);
+      }
+    };
+
+    UI.focus = function(x) {
+      //console.log('UI.focus()', x);
+      if (x && x.object && x.object instanceof THREE.Mesh) {
+        var node = this.graphData.nodes.find(n => x.object === n.__sphere);
+        var synapses = this.network.nodes[node.id].synapses;
+        this.closeup = {
+          neuron: node.id,
+          synapses: synapses.map(s => Object({t: s.t, w: s.w}))
+        };
+        this.closeup.display = true;
+      }
+    }
+
 
   </script>
 </body>

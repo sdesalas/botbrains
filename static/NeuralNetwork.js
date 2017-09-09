@@ -345,81 +345,81 @@ class NetworkShaper {
 
   // Random ball shape
   // (neurons linked at random)
-  static ball (index, size) {
-    var i = Random_1.integer(0, size);
-    if (i !== index) {
-      return i;
+  static ball (neuron, size) {
+    var target = Random_1.integer(0, size - 1);
+    if (target !== neuron) {
+      return target;
     }
-    return null;
+    return undefined;
   }
 
   // Tube shape
-  static tube (index, size) {
-    var i, range = Math.ceil(size / 5);
+  static tube (neuron, size) {
+    var target, range = Math.ceil(size / 5);
     for (var tries = 0; tries < 3; tries++) {
-      var from = -1 * range + index;
-      var to = range + index;
-      i = Random_1.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      var from = -1 * range + neuron;
+      var to = range + neuron;
+      target = Random_1.integer(from, to);
+      if (target >= 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 
   // Snake shape
-  static snake (index, size) {
-    var i, range = Math.ceil(size / 20);
+  static snake (neuron, size) {
+    var target, range = Math.ceil(size / 20);
     for (var tries = 0; tries < 3; tries++) {
-      var from = -1 * range + index;
-      var to = range + index;
-      i = Random_1.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      var from = -1 * range + neuron;
+      var to = range + neuron;
+      target = Random_1.integer(from, to);
+      if (target > 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 
   // Forward-biased sausage shape
   // (neurons linked to neurons with similar id, slightly ahead of each other)
-  static sausage (index, size) {
-    var i, range = Math.ceil(size / 10);
-    var offset = index + Math.floor(range / 2);
+  static sausage (neuron, size) {
+    var target, range = Math.ceil(size / 10);
+    var offset = neuron + Math.floor(range / 2);
     for (var tries = 0; tries < 3; tries++) {
       var from = -1 * range + offset;
       var to = range + offset;
-      i = Random_1.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      target = Random_1.integer(from, to);
+      if (target > 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    i = Random_1.integer(0, size);
-    if (i !== index) {
-      return i;
+    target = Random_1.integer(0, size);
+    if (target !== neuron) {
+      return target;
     }
-    return null;
+    return undefined;
   }
 
-  // Doughnut shape
-  static ring (index, size) {
-    var i, range = Math.ceil(size / 20);
-    var offset = index + Math.floor(range / 2);
+  // Ring shape
+  static ring (neuron, size) {
+    var target, range = Math.ceil(size / 20);
+    var offset = neuron + Math.floor(range / 2);
     for (var tries = 0; tries < 3; tries++) {
       var from = -1 * range + offset;
       var to = range + offset;
-      i = Random_1.integer(from, to);
-      if (i >= size) {
-        return i - size; // Link to beginning
+      target = Random_1.integer(from, to);
+      if (target >= size) {
+        return target - size; // Link to beginning
       }
-      if (i < 0) {
-        return size + i; // Link to end
+      if (target < 0) {
+        return size + target; // Link to end
       }
-      if (i !== index) {
-        return i;
+      if (target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 }
 
@@ -485,8 +485,8 @@ class NeuralNetwork extends events {
   constructor(size, opts) {
     super();
     this.nodes = [];
-    this.inputSites = [];
-    this.outputSites = [];
+    this.inputs = {};
+    this.outputs = {};
     if (typeof size === 'number') {
       // Initialize with size
       this.init(opts);
@@ -499,8 +499,8 @@ class NeuralNetwork extends events {
       const network = size;
       this.init(network.opts);
       this.nodes = network.nodes.map(n => new Neuron(n.id, n.s, network.opts));
-      this.inputSites = network.inputSites && network.inputSites.map(s => s.map(i => this.nodes[i])) || [];
-      this.outputSites = network.inputSites && network.outputSites.map(s => s.map(i => this.nodes[i])) || [];
+      Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(i => this.nodes[i]));
+      Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(i => this.nodes[i]));
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
@@ -544,6 +544,9 @@ class NeuralNetwork extends events {
      * Exports network, useful for cloning and saving to disk
      */
   export() {
+    const inputs = {}, outputs = {};
+    for(const k in this.inputs) { inputs[k] = this.inputs[k].map(n => n.id); }
+    for(const k in this.outputs) { outputs[k] = this.outputs[k].map(n => n.id); }
     return {
       nodes: this.nodes.map(node => Object({
         id: node.id,
@@ -553,9 +556,9 @@ class NeuralNetwork extends events {
           .map(s => Object({t: s.t, w: s.w}))
       })),
       opts: Object.assign({}, this.opts),
-      // Clone array of arrays
-      inputSites: this.inputSites.map(i => i.map(n => n.id)),
-      outputSites: this.outputSites.map(i => i.map(n => n.id))
+      // Clone arrays inside hashmaps
+      inputs,
+      outputs
     };
   }
 
@@ -643,89 +646,82 @@ class NeuralNetwork extends events {
   }
 
   /**
-     * Creates an input site to send data INTO the network
+     * Creates a site to send information INTO or OUT OF the network
      * ```
-     * const left_mic = network.inputSite();             // -> 1 bit input site
-     * const left_mic = network.inputSite(4);            // -> 4 bit input site
-     * const left_mic = network.inputSite([6,7,8,9])     // -> 4 specific neurons in input site
-     * const left_mic = network.inputSite([n1,n2,n3,n4]) // -> 4 specific neurons - by ref 
+     * // 1 bit output site
+     * const left_wheel = network.createSite(this.outputs, 'Wheel (L)');
+     * // 4 bit output site        
+     * const left_wheel = network.createSite(this.outputs, 'Wheel (L)', 4); 
+     * // 4 specific neurons in output site
+     * const left_wheel = network.createSite(this.outputs, 'Wheel (L)', [6,7,8,9]);
+     * // 4 specific neurons (by ref)
+     * const left_wheel = network.createSite(this.outputs, 'Wheel (L)', [n1,n2,n3,n4]);
      * ```
-     * @param {int|int[]|Neuron[]} [bits=1] neurons involved in input site 
-     * @return {int} id of input site
+     * @param {Object} location the location (either network.inputs or network.outputs)
+     * @param {String} label a label describing what the input/output is for
+     * @param {int|int[]|Neuron[]} [bits=1] neurons involved in input/output site
+     * @return {Array} the input/output site
      */
-  inputSite(bits) {
-    return this.site(bits || 1, false);
-  }
-
-  /**
-     * Creates an output site to send information OUT OF the network
-     * ```
-     * const left_wheel = network.outputSite();             // -> 1 bit output site
-     * const left_wheel = network.outputSite(4);            // -> 4 bit output site
-     * const left_wheel = network.outputSite([6,7,8,9])     // -> 4 specific neurons in output site
-     * const left_wheel = network.outputSite([n1,n2,n3,n4]) // -> 4 specific neurons - by ref
-     * ```
-     * @param {int|int[]|Neuron[]} [bits=1] neurons involved in output site
-     * @return {int} id of the input site
-     */
-  outputSite(bits) {
-    return this.site(bits || 1, true);
-  }
-
-  site(bits, isOutput) {
-    const site = isOutput ? this.outputSites : this.inputSites;
-    const index = site.length;
+  createSite(location, label, bits) {
+    const isOutput = location === this.outputs;
+    const site = location[label || Random_1.alpha(4).toUpperCase()] = [];
     let nodes = bits && bits.map && bits.map(n => n instanceof Neuron ? n : this.nodes[n]);
     if (!nodes) {
       // Find starting/ending point and add nodes to site
       const pos = isOutput ? 
-        site.reduce((a, s) => Math.min.apply(null, s.map(n => n.id).concat(a)), this.size) - 2 :
-        site.reduce((a, s) => Math.max.apply(null, s.map(n => n.id).concat(a)), 0) + 2;
-      nodes = new Array(bits)
+        Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].map(n => n.id).concat(a)), this.size) - 2 :
+        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 2;
+      nodes = new Array(bits || 1)
         .fill()
         .map((b, i) => this.nodes[isOutput ? pos - i : pos + i]);
     }
-    site[index] = nodes;
-    return index;
+    site.push(...nodes);
+    return site;
   }
 
   /**
-     * Input some data into the neural network
+     * Creates an input site and returns a function
      * ```
-     * // input data using a single (main) input site
-     * network.input(0.45);
      * // use left/right microphone to input data
-     * const left_mic_site = network.inputSite(4); 
-     * const right_mic_site = network.inputSite(4);
-     * left_mic.on('change', val => network.input(val / 1024, left_mic_site));
-     * lect_mic.on('change', val => network.input(val / 1024, right_mic_site));
+     * const right_mic_input = network.input('Right Mic');
      * ```
-     * @param {float} data input signal potential (between 0 and 1)  
-     * @param {int} index id of input site
+     * @param {String} label a label describing what the input is for
+     * @param {int|int[]|Neuron[]} [bits=1] neurons involved in input site 
+     * @return {Function} a function used to input data into the network
      */
-  input(data, index) {
-    const inputNodes = this.inputSites[index || 0] || this.inputSites[this.inputSite()];
-    if (typeof data === 'number' && inputNodes && inputNodes.length) {
-      // Distribute input signal across nodes
-      const potential = Utils_1.constrain(data, 0, 1);
-      let i = inputNodes.length;
-      while(i--) inputNodes[i].fire(potential);
-    }
+  input(label, bits) {
+    const inputNodes = this.inputs[label] || this.createSite(this.inputs, label, bits);
+    /**
+     * Inputs some data into the neural network
+     * ```
+     * left_mic.on('change', val => network.input('Left Mic')(val / 1024));
+     * ```
+     * @param {float} data a number between 0 and 1
+     */
+    return function(data) {
+      if (typeof data === 'number' && inputNodes && inputNodes.length) {
+        // Distribute input signal across nodes
+        const potential = Utils_1.constrain(data, 0, 1);
+        let i = inputNodes.length;
+        while(i--) inputNodes[i].fire(potential);
+      }
+    };
   }
 
   /**
      * Creates an output site and returns event emitter
      * ```
-     * let output = network.output(4); -> 4 bit listener
+     * const output = network.output('Motor (R)'); 
      * output.on('data', data => console.log(data)); -> fires when there is data
      * output.on('change', data => console.log(data)); -> fires when there is a change
      * ```
+     * @param {String} label a label describing what the output is for
      * @param {int|int[]|Neuron[]} bits neurons involved in the output
-     * @param {int} index 
+     * @return {EventEmitter} an event emitter used to capture output from the network
      */
-  output(bits) {
+  output(label, bits) {
     const observable = new events();
-    const outputNodes = this.outputSites[this.outputSite(bits)];
+    const outputNodes = this.outputs[label] || this.createSite(this.outputs, label, bits);
     this.on('fire', id => {
       const neuron = this.nodes[id];
       if (outputNodes.indexOf(neuron)) {
@@ -798,8 +794,8 @@ class NeuralNetwork extends events {
       const nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
       clone.nodes.push(...nodes);
       clone.synapses.forEach(s => s.target = clone.nodes[s.t]);
-      clone.inputSites.push(...network.inputSites.map(arr => arr.map(n => clone.nodes[n.id + size])));
-      clone.outputSites.push(...network.outputSites.map(arr => arr.map(n => clone.nodes[n.id + size])));
+      Object.keys(network.inputs).forEach(k => clone.inputs[k] = network.inputs[k].map(n => clone.nodes[n.id + size]));
+      Object.keys(network.outputs).forEach(k => clone.outputs[k] = network.outputs[k].map(n => clone.nodes[n.id + size]));
       nodes.forEach(n => n.on('fire', (i, p) => clone.emit('fire', i, p)));
     }
     return clone;
@@ -849,13 +845,13 @@ class Neuron extends events {
     // Number of synapses are random based on average
     const synapses = new Array(Random_1.integer(1, opts.connectionsPerNeuron * 2 - 1))
       .fill()
-      .map(() => {
+      .map((s, i) => {
         // target is defined by shaper function
-        const t = shaper(index, size),
-          // weight is between -0.5 and 0.75, gaussian distribution around 0.125
+        const t = shaper(index, size, i),
+          // initial weight is between -0.5 and 0.75, gaussian distribution around 0.125
           w = -0.5 + Random_1.gaussian() * 1.25;
 
-        if (t) {
+        if (t && t < size) {
           // index, weight, long term weight
           return { t, w, ltw: w }; 
         }
