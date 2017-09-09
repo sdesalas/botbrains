@@ -141,7 +141,7 @@ If a `Function` is passed as the `opts` parameter, its interpreted as the [shape
 let network = new NeuralNetwork(100, (source, size) => Math.floor(Math.random() * size));
 ```
 
-### network.input(label[, neurons=1])
+### network.input(label [, neurons=1])
 
 Creates an input into the network.
 
@@ -165,7 +165,7 @@ var input3 = network.input('LightSensor (R)', [10,11,12]) // Which neurons? => 1
 sensor.on('data', data => input3(data / 1024));
 ```
 
-### network.output(label[, neurons])
+### network.output(label [, neurons=1])
 
 Returns an [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter) with 2 events: `data` and `change`. 
 
