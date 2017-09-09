@@ -36,10 +36,10 @@
 <body>
   <div id="app" :style="{ display: initialized ? 'block' : 'none' }">
     <nav id="left">
-      <a href="javascript:;" v-on:click="socket.emit('learn')"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('learn')"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a>
     </nav>
     <nav id="right">
-      <a href="javascript:;" v-on:click="socket.emit('unlearn')"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('unlearn')"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a>
     </nav>
     <section id="stats">
       <dl>
@@ -87,6 +87,9 @@
   <div id="graph"></div>
   <script>
 
+    var network;
+    var graphData;
+    var socket = io();
     var UI = new Vue({
       el: '#app',
       data: {
@@ -103,30 +106,27 @@
           display: false,
           neuron: 56,
           synapses: [{ t: 67, w: 0.342523}, {t: 59, w: -0.13199}]
-        },
-        socket: io(),
-        network: null,
-        graphData: null
+        }
       },
       methods: {},
       mounted: function() {
-        this.socket.on('connection', data => {
+        socket.on('connection', data => {
           console.log('connection', data);
           if (data) {
-            this.network = new botbrain.NeuralNetwork(data); 
-            this.signalRecovery = 5000 / this.network.opts.signalSpeed;
+            network = new botbrain.NeuralNetwork(data); 
+            this.signalRecovery = 5000 / network.opts.signalSpeed;
             this.updateNetwork();
             this.visualise();
           }
         });
 
-        this.socket.on('fire', id => this.fire(id));
-        this.socket.on('stats', stats => this.updateStats(stats));
-        this.socket.on('update', data => {
+        socket.on('fire', id => this.fire(id));
+        socket.on('stats', stats => this.updateStats(stats));
+        socket.on('update', data => {
           console.log('update', data);
           if (data) {
-            this.network = new botbrain.NeuralNetwork(data);
-            this.signalRecovery = 5000 / this.network.opts.signalSpeed;
+            network = new botbrain.NeuralNetwork(data);
+            this.signalRecovery = 5000 / network.opts.signalSpeed;
             this.updateNetwork();
           }
         });
@@ -135,7 +135,6 @@
 
     UI.visualise = function() {
 
-      let network = this.network;
       let inputs = Object.keys(network.inputs).reduce((acc, k) => acc.concat(network.inputs[k]), []);
       let inputLabels = network.nodes.map(node => Object.keys(network.inputs).find(k => network.inputs[k].indexOf(node) > -1));
       let outputs = Object.keys(network.outputs).reduce((acc, k) => acc.concat(network.outputs[k]), []);
@@ -154,15 +153,13 @@
         .forceEngine('ngraph')
         .graphData({ nodes, links })
         .nodeRelSize(5)
-        .onReady(graph => this.graphData = graph.graphData)
+        .onReady(graph => graphData = graph.graphData)
         .onClick(x => this.focus(x));
 
-      console.log({ graphData: this.graphData, links: this.graphData.links });
+      console.log({ graphData: graphData, links: graphData.links });
     };
 
     UI.updateNetwork = function() {
-      const network = this.network; 
-      const graphData = this.graphData;
       //console.log('updateNetwork', { network, graphData });
       if (network) {
         if (graphData) { // update synapses
@@ -189,7 +186,7 @@
     }
 
     UI.fire = function(id) {
-      const node = this.graphData && this.graphData.nodes && this.graphData.nodes[id];
+      const node = graphData && graphData.nodes && graphData.nodes[id];
       if (node && node.__sphere) {
         let material = node.__sphere.material;
         let oldColor = material.color;
@@ -206,8 +203,8 @@
     UI.focus = function(x) {
       //console.log('UI.focus()', x);
       if (x && x.object && x.object instanceof THREE.Mesh) {
-        var node = this.graphData.nodes.find(n => x.object === n.__sphere);
-        var synapses = this.network.nodes[node.id].synapses;
+        var node = graphData.nodes.find(n => x.object === n.__sphere);
+        var synapses = network.nodes[node.id].synapses;
         this.closeup = {
           neuron: node.id,
           synapses: synapses.map(s => Object({t: s.t, w: s.w}))
