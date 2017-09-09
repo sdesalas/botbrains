@@ -138,7 +138,7 @@ let network = new NeuralNetwork(100, 'ring');
 If a `Function` is passed as the `opts` parameter, its interpreted as the [shaper function](#shaper-function), see examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 ```js
-let network = new NeuralNetwork(100, (source, size) => Math.floor(Math.random() * size));
+let network = new NeuralNetwork(100, (neuron, size) => Math.floor(Math.random() * size));
 ```
 
 ### network.input(label [, neurons=1])
@@ -220,34 +220,30 @@ The shaper function is executed *once for every synapse in the network*. If ther
 
 A shaper function has three inputs: 
 
-- **`source`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a `source` of `9` is the last neuron in the network.
+- **`neuron`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a value of `9` means the last neuron in the network.
 - **`size`**: The total number of nodes in the network. In other words, in a network of 10 neurons, this will be `10`. Useful for linking up the end of the network back to its beginning or for discarding links outside the network.
-- **`index`**: A neuron has several synapses originating from it. The `index` determines which synapse is currently being linked. In other words, if there are 4 synapses in the `source` neuron, the shaper function will fire 4 times for it, with an `index` from `0` to `3` accordingly.
+- **`synapse`**: A neuron has several synapses originating from it. The `synapse` determines which synapse is currently being linked. In other words, if there are 4 synapses in the originating `neuron`, the shaper function will execute 4 times for it, with a `synapse` value of `0` to `3` accordingly.
 
 And returns:
 
- - **`target`**: The destination position of an onward neuron (for connecting to it). In a network of 10 nodes, when we are mapping `source` node `0` (the first node) and synapse `0` (the first synapse), a `target` of `9` means that synapse will be linking to the last neuron.
+ - **`target`**: The destination position of an onward neuron (for connecting to it). In a network of 10 nodes, when we are mapping a `neuron` at `0` (the first node) and synapse `0` (the first synapse), a `target` of `9` means that synapse will be linking to the last neuron.
 
-Bear in mind that since the shaper function will be executed *multiple times per neuron* to determine the onward neuron for each synapse, you will want these to connect to different onward neurons. This can be done either choosing an onward `target` at random, or by using the `index` argument to calculate the `target` neuron in a deterministic basis.
+Bear in mind that since the shaper function will be executed *multiple times per neuron* to determine the onward neuron for each synapse, you will want these to connect to different onward neurons. This can be done either choosing an onward `target` at random, or by using the `synapse` argument to calculate the `target` neuron in a deterministic manner.
 
 Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-const ball = new NeuralNetwork(100, function(source, size) {
-  var target = Math.floor(Math.random() * size); // pick any onward neuron at random
-  if (target === source) return undefined; // reject it if it connects back to same neuron
-  return target; // otherwise return it
-});
+const ball = new NeuralNetwork(100, (neuron, size) => Math.floor(Math.random() * size));
 ```
 
 Another more complex example:
 
 ```js
 // Ring shape
-const ring = new NeuralNetwork(100, function(source, size) {
+const ring = new NeuralNetwork(100, function(neuron, size) {
   var target, thickness = Math.ceil(size / 20);
-  var offset = source + Math.floor(thickness / 2); // Point synapses in onward direction
+  var offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
   for (var tries = 0; tries < 3; tries++) {
     var from = -1 * thickness + offset;
     var to = thickness + offset;
@@ -258,7 +254,7 @@ const ring = new NeuralNetwork(100, function(source, size) {
     if (target < 0) {
       return size + target; // Link to end
     }
-    if (target !== source) {
+    if (target !== neuron) {
       return target; // All good? Return it
     }
   }

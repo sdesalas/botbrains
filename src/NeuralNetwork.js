@@ -400,13 +400,13 @@ class Neuron extends EventEmitter {
     // Number of synapses are random based on average
     const synapses = new Array(Random.integer(1, opts.connectionsPerNeuron * 2 - 1))
       .fill()
-      .map(() => {
+      .map((s, i) => {
         // target is defined by shaper function
-        const t = shaper(index, size),
-          // weight is between -0.5 and 0.75, gaussian distribution around 0.125
+        const t = shaper(index, size, i),
+          // initial weight is between -0.5 and 0.75, gaussian distribution around 0.125
           w = -0.5 + Random.gaussian() * 1.25;
 
-        if (t) {
+        if (t && t < size) {
           // index, weight, long term weight
           return { t, w, ltw: w }; 
         }

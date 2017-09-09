@@ -6,81 +6,81 @@ class NetworkShaper {
 
   // Random ball shape
   // (neurons linked at random)
-  static ball (index, size) {
-    var i = Random.integer(0, size);
-    if (i !== index) {
-      return i;
+  static ball (neuron, size) {
+    var target = Random.integer(0, size - 1);
+    if (target !== neuron) {
+      return target;
     }
-    return null;
+    return undefined;
   }
 
   // Tube shape
-  static tube (index, size) {
-    var i, range = Math.ceil(size / 5);
+  static tube (neuron, size) {
+    var target, range = Math.ceil(size / 5);
     for (var tries = 0; tries < 3; tries++) {
-      var from = -1 * range + index;
-      var to = range + index;
-      i = Random.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      var from = -1 * range + neuron;
+      var to = range + neuron;
+      target = Random.integer(from, to);
+      if (target >= 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 
   // Snake shape
-  static snake (index, size) {
-    var i, range = Math.ceil(size / 20);
+  static snake (neuron, size) {
+    var target, range = Math.ceil(size / 20);
     for (var tries = 0; tries < 3; tries++) {
-      var from = -1 * range + index;
-      var to = range + index;
-      i = Random.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      var from = -1 * range + neuron;
+      var to = range + neuron;
+      target = Random.integer(from, to);
+      if (target > 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 
   // Forward-biased sausage shape
   // (neurons linked to neurons with similar id, slightly ahead of each other)
-  static sausage (index, size) {
-    var i, range = Math.ceil(size / 10);
-    var offset = index + Math.floor(range / 2);
+  static sausage (neuron, size) {
+    var target, range = Math.ceil(size / 10);
+    var offset = neuron + Math.floor(range / 2);
     for (var tries = 0; tries < 3; tries++) {
       var from = -1 * range + offset;
       var to = range + offset;
-      i = Random.integer(from, to);
-      if (i > 0 && i < size && i !== index) {
-        return i;
+      target = Random.integer(from, to);
+      if (target > 0 && target < size && target !== neuron) {
+        return target;
       }
     }
-    i = Random.integer(0, size);
-    if (i !== index) {
-      return i;
+    target = Random.integer(0, size);
+    if (target !== neuron) {
+      return target;
     }
-    return null;
+    return undefined;
   }
 
-  // Doughnut shape
-  static ring (index, size) {
-    var i, range = Math.ceil(size / 20);
-    var offset = index + Math.floor(range / 2);
+  // Ring shape
+  static ring (neuron, size) {
+    var target, range = Math.ceil(size / 20);
+    var offset = neuron + Math.floor(range / 2);
     for (var tries = 0; tries < 3; tries++) {
       var from = -1 * range + offset;
       var to = range + offset;
-      i = Random.integer(from, to);
-      if (i >= size) {
-        return i - size; // Link to beginning
+      target = Random.integer(from, to);
+      if (target >= size) {
+        return target - size; // Link to beginning
       }
-      if (i < 0) {
-        return size + i; // Link to end
+      if (target < 0) {
+        return size + target; // Link to end
       }
-      if (i !== index) {
-        return i;
+      if (target !== neuron) {
+        return target;
       }
     }
-    return null;
+    return undefined;
   }
 }
 
