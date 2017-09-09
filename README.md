@@ -155,14 +155,14 @@ Returns:
 Usage:
 
 ```js
-network.input('Microphone') // 1 x Neuron assigned automatically
-    .on('data', pwr => sound_signal(pwr / 1024));
+var input1 = network.input('Microphone') // 1 x Neuron assigned automatically
+sensor.on('data', data => input1(data / 1024));
 
-network.input('LightSensor (L)', 3) // How many neurons? => 3 
-    .on('data', pwr => left_signal(pwr / 1024));
+var input2 = network.input('LightSensor (L)', 3) // How many neurons? => 3 
+sensor.on('data', data => input2(data / 1024));
 
-network.input('LightSensor (R)', [10,11,12]) // Which neurons? => 10, 11 & 12
-    .on('data', pwr => right_signal(pwr / 1024))
+var input3 = network.input('LightSensor (R)', [10,11,12]) // Which neurons? => 10, 11 & 12
+sensor.on('data', data => input3(data / 1024));
 ```
 
 ### network.output(label[, neurons])
@@ -186,7 +186,7 @@ network.output('Motor (L)') // 1 x Neuron assigned automatically
 
 network.output('Motor (R)', 4) // How many neurons? => 3 
     .on('data', (pwr) => console.log(`Power: ${pwr}.`));
-    
+
 network.output('Buzzer', [6,7,8]) // Which neurons? => 6, 7 & 8
     .on('data', (pwr) => console.log(`Power: ${pwr}.`));
 ```
