@@ -49,35 +49,33 @@ board.on("ready", function() {
 
     var network = new botbrains.NeuralNetwork(32);
 
-    // PROXIMITY SENSOR INPUT
-    var proximity = new five.Sensor({ pin: "A6", freq: 200 });
-    proximity.on("change", () => network.input(proximity.value));
+    // PROXIMITY SENSOR INPUT (pin A6)
+    var proximity_signal = network.input('Proximity Sensor');
+    var sensor = new five.Sensor({ pin: "A6", freq: 200 });
+    sensor.on("change", () => proximity_signal(sensor.value / 1024));
 
-    // MOTOR OUTPUT
-    var motor_l = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
-    var motor_r = new five.Motor({ pins: { pwm: 9, dir: 8, }, invertPWM: true, });
+    // MOTOR OUTPUT (pins D6-D8)
+    var left_motor = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
+    var right_motor = new five.Motor({ pins: { pwm: 9, dir: 8, }, invertPWM: true, });
 
-    // Reactions to data can be arbitrary.
-    // It doesnt matter what gets mapped to what since
-    // the robot will learn to coordinate itself
+    // Output binding can be reasonably random.
+    // It doesn't matter what gets mapped to what
+    // since the robot will learn to coordinate itself
     // using positive and negative feedback.
 
-    var output1 = network.output(2); // 2-bit output (0-3)
-    var output2 = network.output(2); // 2-bit output (0-3)
+    var left_signal = network.output('Wheel (L)'); 
+    left_signal.on("data", power => { // between 0 and 1
+        var speed = Math.floor(power * 255);
+        if (power > 0.25) left_motor.forward(speed);
+        else left_motor.stop();
+    });
 
-    output1.on("data", move.bind(motor_l));
-    output2.on("data", move.bind(motor_r));
-
-    function move(data) {
-    	switch(data) {
-            case 1: // Forward
-                return this.forward();
-            case 2: // Backward
-                return this.reverse();
-            case 3: // Or Stop
-                return this.stop();
-    	}
-    }
+    var right_signal = network.output('Wheel (R)');
+    right_signal.on("data", power => { // between 0 and 1
+        var speed = Math.floor(power * 255);
+        if (power > 0.25) right_motor.forward(speed);
+        else right_motor.stop();
+    });
 
     // DISPLAY VIA LOCAHOST (http.Server)
     var server = botbrains.Toolkit.visualise(network);
@@ -97,7 +95,7 @@ $ node robot.js
 
 NeuralNetwork is a class in the botbrains module and can be loaded in the following ways:
 
-```
+```js
 import { NeuralNetwork } from 'botbrains'; // ES6  
 
 const NeuralNetwork = require('botbrains').NeuralNetwork; // Node, CommonJS
@@ -118,51 +116,59 @@ Generates a neural network.
     - `.signalFireThreshold`: Threshold (between 0 and 1) needed to trigger onward neurons. Defaults to `0.3`.
     - `.learningRate`: Max increase/decrease to connection strength when learning. Defaults to `0.15`.
     - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to `60000` ms.
-    - `.messageSize`: Number of neurons involved in each input/output channel. Defaults to `10` bits (ie 2^10 = 0-1024).
 
 For example, to create a network of 100 neurons using all default options:
 
-```
+```js
 let network = new NeuralNetwork(100);
 ```
 
 To create a ring-shaped network of 100 neurons with double the speed and learning rate.
 
-```
+```js
 let network = new NeuralNetwork(1000, { shape: 'ring', signalSpeed: 40, learningRate: 0.3 });
 ```
 
 If a `String` is passed in as the `opts` parameter, its interpreted as the network shape.
 
-```
+```js
 let network = new NeuralNetwork(100, 'ring');
 ```
 
 If a `Function` is passed as the `opts` parameter, its interpreted as the [shaper function](#shaper-function), see examples in [NetworkShaper.js](src/NetworkShaper.js).
 
+```js
+let network = new NeuralNetwork(100, (source, size) => Math.floor(Math.random() * size));
 ```
-let network = new NeuralNetwork(100, (index, size) => Math.floor(Math.random() * size));
-```
 
-### network.input(data [, channel = 0])
+### network.input(label[, neurons])
 
-Inputs data into the network, firing neuron pathways across a particular (zero-indexed) channel.
+Creates an input into the network.
 
-- **`data`**: Integer input, normally between 0 and 1023 (if `messageSize` is 10 then `2^10 = 1024`) . Required.
-- **`channel`**: Zero-indexed channel. Each channel takes up 10 neurons (if `messageSize` is 10). Defaults to `0`.
+- **`label`**: A label used to visually identify the neurons involved.
+- **`neurons`**: Optional `Number` of neurons involved, or array of numbers (`Number[]`) defining the network nodes that are involved in the input.
+
+Returns:
+
+- **`Function(signal 0-1)`**: A function that accepts incoming signals (a float between 0 and 1).
 
 Usage:
 
-```
-network.input(sensor1.value); // Inputs sensor1 data into channel 0
-network.input(sensor2.value, 1); // Inputs sensor2 data into channel 1
+```js
+var sound_signal = network.input('Microphone'); // Neurons automatically assigned
+var left_signal = network.input('LightSensor (L)', 3); // Specify how many neurons 
+var right_signal = network.input('LightSensor (R)', [10,11,12]); // Specify which neurons
+microphone.on('data', pwr => sound_signal(pwr / 1024));
+left_sensor.on('data', pwr => left_signal(pwr / 1024));
+right_sensor.on('data', pwr => right_signal(pwr / 1024)); 
 ```
 
-### network.output([bits = messageSize])
+### network.output(label[, neurons])
 
 Returns an [EventEmitter](https://nodejs.org/api/events.html#events_class_eventemitter) with 2 events: `data` and `change`. 
 
-- **`bits`**: An integer that determines the number of neurons used for the output and resulting size of messages received by event callbacks. Defaults to `messageSize`.
+- **`label`**: A label used to visually identify the neurons involved.
+- **`neurons`**: Optional `Number` of neurons involved, or array of numbers (`Number[]`) defining the network nodes that are involved in the input.
 
 **Event: `data`**:
 
@@ -170,11 +176,11 @@ Fires whenever there is data to output.
 
 The event handler function will receive the following arguments.
 
-- **`data`**: The integer value output, in `2^bits`. Normally between 0 and 1023 if no `bits` value was used.
+- **`data`**: A numeric floating point value between 0 and 1, containing the strength of the outgoing signal.
 
-```
-network.output(8); // 8 bits = resulting value will be 0-255
-network.on('data', function(data) {
+```js
+network.output('', 8);
+network.on('data', function(pwr) {
     console.log(`Network output (0-255) is: ${data}.`);
 });
 ```
@@ -185,52 +191,79 @@ An event that fires whenever there is a change in the outgoing data.
 
 The event handler function will receive the following arguments.
 
-- **`data`**: The integer value output, in `2^bits`. Normally between 0 and 1023 if no `bits` value was used.
-- **`last`**: The previous integer value output, in `2^bits`. 
+- **`data`**: A numeric floating point value between 0 and 1, containing the strength of the outgoing signal.
+- **`last`**: The previous value output. 
 - **`diff`**: The difference between `last` and `data`.
 
-```
+```js
 network.output(8); // 8 bits = resulting value will be 0-255
 network.on('change', function(data, last, diff) {
-    console.log(`Network output (0-255) is: ${data}. Previous output was ${last}. Difference is ${diff}`);
+    console.log(`Network output is: ${data}. Previous output was ${last}. Difference is ${diff}`);
 });
 ```
 
 ### Shaper Function
 
-A shaper is a function that determines the shape of the network by returning the likely onward connections made by each neuron. 
+A shaper is a function that determines the shape of the network by returning the onward connections made by each neuron. 
 
 For example, if a neuron is connected to other neurons at random, the final shape of the network will be a ball. If its connected to nearby neurons the shape will be more of a snake or cylinder. If neurons close to the end are linked to neurons at the beginning, the end product will be more of a ring or a doughnut.
 
+The shaper function is executed *once for every synapse in the network*. If there are 10 nodes, and 4 synapses per node, it will fire 40 times to determine the onward neuron in each of those synapses.
+
 ![shaper.png](shaper.png)
 
-A shaper function has two inputs: 
+A shaper function has three inputs: 
 
-- **`index`**: The node position in the `nodes` array. In a network of 10 nodes, the first node has an index of 0, the last node an index of 9.
-- **`size`**: The total number of nodes in the network. This is useful for linking up the end of the network or for discarding links outside the network.
+- **`source`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a `source` of `9` is the last neuron in the network.
+- **`size`**: The total number of nodes in the network. In other words, in a network of 10 neurons, this will be `10`. Useful for linking up the end of the network back to its beginning or for discarding links outside the network.
+- **`index`**: A neuron has several synapses originating from it. The `index` determines which synapse is currently being linked. In other words, if there are 4 synapses in the `source` neuron, the shaper function will fire 4 times for it, with an `index` from `0` to `3` accordingly.
 
 And returns:
 
- - **`index`**: The `index` position of an onward neuron (for connecting to it). 
+ - **`target`**: The destination position of an onward neuron (for connecting to it). In a network of 10 nodes, when we are mapping `source` node `0` (the first node) and synapse `0` (the first synapse), a `target` of `9` means that synapse will be linking to the last neuron.
 
-Bear in mind that the onward connection should be a *variable random number*, as the shaper will be executed several times per neuron, and if a neuron has 4 connections you will want these to connect to different onward neurons.
+Bear in mind that since the shaper function will be executed *multiple times per neuron* to determine the onward neuron for each synapse, you will want these to connect to different onward neurons. This can be done either choosing an onward `target` at random, or by using the `index` argument to calculate the `target` neuron in a deterministic basis.
 
-For example:
+Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-const ball = function (index, size) {
-    const i = Math.floor(Math.random() * size); // pick any onward neuron at random
-    if (i === index) return null; // reject it if it connects back to same neuron
-    return i; // otherwise return it
-}
+const ball = new NeuralNetwork(100, function(source, size) {
+  var target = Math.floor(Math.random() * size); // pick any onward neuron at random
+  if (target === source) return undefined; // reject it if it connects back to same neuron
+  return target; // otherwise return it
+});
+```
+
+Another more complex example:
+
+```js
+// Ring shape
+const ring = new NeuralNetwork(100, function(source, size) {
+  var target, thickness = Math.ceil(size / 20);
+  var offset = source + Math.floor(thickness / 2); // Point synapses in onward direction
+  for (var tries = 0; tries < 3; tries++) {
+    var from = -1 * thickness + offset;
+    var to = thickness + offset;
+    target = Random.integer(from, to);
+    if (target >= size) {
+      return target - size; // Link to beginning
+    }
+    if (target < 0) {
+      return size + target; // Link to end
+    }
+    if (target !== source) {
+      return target; // All good? Return it
+    }
+  }
+  // No luck? Reject it
+  return undefined;
+});
 ```
 
 There are more examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 **Why does shape matter?**
-
-In traditional models of neural networks, shape tends not to matter very much, it simply occurs as a result of creating the necessary connections between different neural layers. 
 
 The Neural Network model used for [botbrains](https://www.npmjs.com/package/botbrains) is [asynchronous](https://en.wikipedia.org/wiki/Asynchrony_(computer_programming)). Signal propagate across the network in the same manner as they would in an animal brain, one neuron at a time. Different shapes matter because they create resonance and oscillation patterns that are important for producing particular outputs to inputs in a time-dependent manner.
 

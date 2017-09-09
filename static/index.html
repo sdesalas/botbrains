@@ -75,13 +75,17 @@
   <div id="main"></div>
   <script>
 
-    var UI = {};
+    var UI = { dom: {} };
+
+    UI.loadElements = function() {
+      var id;
+      for (var i = 0; i < arguments.length; i++) {
+        id = arguments[i];
+        UI.dom[id] = document.getElementById(id);
+      }
+    };
     
-    UI.dom = ['main', 'cpu', 'mem', 'nodes', 'synapses', 'strength', 'weight', 'inputs', 'outputs']
-      .reduce((acc, id) => {
-      acc[id] = document.getElementById(id);
-      return acc;
-    }, {});
+    UI.loadElements('main', 'cpu', 'mem', 'nodes', 'synapses', 'strength', 'weight', 'inputs', 'outputs');
 
     UI.update = (network, stats) => { 
       if (network) {

@@ -9,7 +9,8 @@
     "copy": "ncp node_modules/3d-force-graph/dist/3d-force-graph.min.js ./static/lib && ncp node_modules/socket.io-client/socket.io.js ./static/lib",
     "build": "rollup -c && npm run copy",
     "serve": "node quickstart.js",
-    "start": "opn http://localhost:8811 && npm run serve"
+    "display": "opn http://localhost:8811 || true",
+    "start": "npm run display && npm run serve"
   },
   "engines": {
     "node": ">=6.0.0"

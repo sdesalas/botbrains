@@ -11,7 +11,7 @@ const DEFAULTS = {
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.1,          // max % increase/decrease to synapse strength when learning
+  learningRate: 0.15,          // max % increase/decrease to synapse strength when learning
 };
 
 class NeuralNetwork extends EventEmitter {

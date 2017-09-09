@@ -1,8 +1,8 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(600, 'ring');
+const network = new botbrain.NeuralNetwork(600, 'ball');
 
-network.output([90,92]);
+network.output([590,592]);
 //network.output(2);
 network.inputSite([3,5,7,9]);
 //network.inputSite(4);
@@ -10,4 +10,4 @@ network.inputSite([3,5,7,9]);
 botbrain.Toolkit.verbose = true;
 botbrain.Toolkit.visualise(network);
 
-setInterval(() => network.input(Math.random()), 1000);
+setInterval(() => network.input(Math.random()), 200);
