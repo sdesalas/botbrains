@@ -69,7 +69,6 @@ board.on('ready', () => {
             else left_motor.stop();
         });
 
-
     network.output('Wheel (R)')
         .on('data', (power) => { // between 0 and 1
             const speed = Math.floor(power * 255);
@@ -206,6 +205,17 @@ network.output('Buzzer')
     .on('change', function(data, last, diff) {
         console.log(`Buzzer output is: ${data}. Previous output was ${last}. Difference is ${diff}`);
     });
+```
+
+
+### network.concat(network)
+
+Merges 2 networks, returning a third network which combines both of them.
+
+```js
+const network1 = new NeuralNetwork(100, 'ball');
+const network2 = new NeuralNetwork(100, 'ring');
+const network3 = network1.concat(network2);
 ```
 
 ### Shaper Function
