@@ -234,14 +234,16 @@ Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-const ball = new NeuralNetwork(100, (neuron, size, synapse) => Math.floor(Math.random() * size));
+new NeuralNetwork(100, (neuron, size, synapse) => Math.floor(Math.random() * size));
 ```
 
-Another more complex example:
+Another more involved example:
 
 ```js
 // Ring shape
-const ring = new NeuralNetwork(100, (neuron, size, synapse) => {
+const network = new NeuralNetwork(100, ring);
+
+function ring(neuron, size, synapse) {
   const thickness = Math.ceil(size / 20);
   const offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
   for (var tries = 0; tries < 3; tries++) {
@@ -260,7 +262,7 @@ const ring = new NeuralNetwork(100, (neuron, size, synapse) => {
   }
   // No luck? Reject it
   return undefined;
-});
+}
 ```
 
 There are more examples in [NetworkShaper.js](src/NetworkShaper.js).
