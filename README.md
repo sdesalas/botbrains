@@ -202,10 +202,10 @@ The event handler function will receive the following arguments.
 - **`diff`**: The difference between `last` and `data`.
 
 ```js
-network.output(8); // 8 bits = resulting value will be 0-255
-network.on('change', function(data, last, diff) {
-    console.log(`Network output is: ${data}. Previous output was ${last}. Difference is ${diff}`);
-});
+network.output('Buzzer')
+    .on('change', function(data, last, diff) {
+        console.log(`Buzzer output is: ${data}. Previous output was ${last}. Difference is ${diff}`);
+    });
 ```
 
 ### Shaper Function
