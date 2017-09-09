@@ -122,7 +122,7 @@
         .onReady(graph => UI.graphData = graph.graphData)
         .onClick(x => console.log('click', {x}));
 
-      console.log({ graphData: UI.graphData });
+      console.log({ graphData: UI.graphData, links: UI.graphData.links });
     }
 
     (function() {
@@ -160,10 +160,7 @@
         }
       });
 
-      UI.socket.on('stats', stats => {
-        console.log('stats', stats);
-        UI.update(null, stats);
-      });
+      UI.socket.on('stats', stats => UI.update(null, stats));
 
       UI.socket.on('update', data => {
         // Update synapses
@@ -172,7 +169,13 @@
         let network = new botbrain.NeuralNetwork(data);
         if (data && graphData) {
           let lines = graphData.links.map(l => l.__line);
-          network.synapses.forEach((s, i) => lines[i].material.opacity = s.w);
+          network.synapses.forEach((s, i) => {
+            let line = lines[i];
+            if (!line) {
+              debugger;
+            }
+            line.material.opacity = s.w
+          });
         }
         UI.update(network);
       });

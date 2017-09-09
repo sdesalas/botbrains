@@ -1,6 +1,6 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(600, 'ball');
+const network = new botbrain.NeuralNetwork(600, 'ring');
 
 network.output([590,592]);
 //network.output(2);
