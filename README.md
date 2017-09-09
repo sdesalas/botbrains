@@ -50,9 +50,8 @@ board.on("ready", function() {
     var network = new botbrains.NeuralNetwork(32);
 
     // PROXIMITY SENSOR INPUT (pin A6)
-    var proximity_signal = network.input('Proximity Sensor');
     var sensor = new five.Sensor({ pin: "A6", freq: 200 });
-    sensor.on("change", () => proximity_signal(sensor.value / 1024));
+    sensor.on("change", () => network.input('Proximity')(sensor.value / 1024));
 
     // MOTOR OUTPUT (pins D6-D8)
     var left_motor = new five.Motor({ pins: { pwm: 6, dir: 7, }, invertPWM: true, });
@@ -63,19 +62,20 @@ board.on("ready", function() {
     // since the robot will learn to coordinate itself
     // using positive and negative feedback.
 
-    var left_signal = network.output('Wheel (L)'); 
-    left_signal.on("data", power => { // between 0 and 1
-        var speed = Math.floor(power * 255);
-        if (power > 0.25) left_motor.forward(speed);
-        else left_motor.stop();
-    });
+    network.output('Wheel (L)')
+        .on("data", (power) => { // between 0 and 1
+            var speed = Math.floor(power * 255);
+            if (power > 0.25) left_motor.forward(speed);
+            else left_motor.stop();
+        });
 
-    var right_signal = network.output('Wheel (R)');
-    right_signal.on("data", power => { // between 0 and 1
-        var speed = Math.floor(power * 255);
-        if (power > 0.25) right_motor.forward(speed);
-        else right_motor.stop();
-    });
+
+    network.output('Wheel (R)')
+        .on("data", (power) => { // between 0 and 1
+            var speed = Math.floor(power * 255);
+            if (power > 0.25) right_motor.forward(speed);
+            else right_motor.stop();
+        });
 
     // DISPLAY VIA LOCAHOST (http.Server)
     var server = botbrains.Toolkit.visualise(network);
