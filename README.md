@@ -141,7 +141,7 @@ If a `Function` is passed as the `opts` parameter, its interpreted as the [shape
 let network = new NeuralNetwork(100, (source, size) => Math.floor(Math.random() * size));
 ```
 
-### network.input(label[, neurons])
+### network.input(label[, neurons=1])
 
 Creates an input into the network.
 
@@ -155,12 +155,14 @@ Returns:
 Usage:
 
 ```js
-var sound_signal = network.input('Microphone'); // Neurons automatically assigned
-var left_signal = network.input('LightSensor (L)', 3); // Specify how many neurons 
-var right_signal = network.input('LightSensor (R)', [10,11,12]); // Specify which neurons
-microphone.on('data', pwr => sound_signal(pwr / 1024));
-left_sensor.on('data', pwr => left_signal(pwr / 1024));
-right_sensor.on('data', pwr => right_signal(pwr / 1024)); 
+network.input('Microphone') // 1 x Neuron assigned automatically
+    .on('data', pwr => sound_signal(pwr / 1024));
+
+network.input('LightSensor (L)', 3) // How many neurons? => 3 
+    .on('data', pwr => left_signal(pwr / 1024));
+
+network.input('LightSensor (R)', [10,11,12]) // Which neurons? => 10, 11 & 12
+    .on('data', pwr => right_signal(pwr / 1024))
 ```
 
 ### network.output(label[, neurons])
@@ -179,10 +181,14 @@ The event handler function will receive the following arguments.
 - **`data`**: A numeric floating point value between 0 and 1, containing the strength of the outgoing signal.
 
 ```js
-network.output('', 8);
-network.on('data', function(pwr) {
-    console.log(`Network output (0-255) is: ${data}.`);
-});
+network.output('Motor (L)') // 1 x Neuron assigned automatically
+    .on('data', (pwr) => console.log(`Power: ${pwr}.`));
+
+network.output('Motor (R)', 4) // How many neurons? => 3 
+    .on('data', (pwr) => console.log(`Power: ${pwr}.`));
+    
+network.output('Buzzer', [6,7,8]) // Which neurons? => 6, 7 & 8
+    .on('data', (pwr) => console.log(`Power: ${pwr}.`));
 ```
 
 **Event: `change`**:
