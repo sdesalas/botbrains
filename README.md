@@ -21,6 +21,7 @@ You need [NodeJS](https://nodejs.org/en/download/) installed, version 6 or above
 ```sh
 $ mkdir my-bot && cd my-bot
 $ npm install botbrains
+$ cd node_modules/botbrains
 $ npm start
 ```
 
