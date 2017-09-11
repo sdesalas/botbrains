@@ -215,7 +215,7 @@ Merges a network into another network, or into itself.
 
 ```js
 const network = new NeuralNetwork(100, 'ball');
-network.join(new NeuralNetwork(100, 'ring'), 0.5, 0.1); / join on the middle, using 10% of nodes.
+network.join(new NeuralNetwork(100, 'ring'), 0.5, 0.1); // join on the middle, using 10% of nodes.
 network.join(network); // join on itself
 ```
 
