@@ -7,7 +7,7 @@
     nav { position: absolute; top: 40%; text-align: center; opacity: 0.5; }
     nav:hover { opacity: 1; }
     #app { display: none; }
-    #closeup { position: absolute; width: 120px; color: #999; background: rgba(80, 80, 80, 0.3); font-size: 10px; top: 10px; right: 10px; padding: 10px; }
+    #closeup { position: absolute; width: 140px; color: #999; background: rgba(80, 80, 80, 0.3); font-size: 10px; top: 10px; right: 10px; padding: 10px; }
     #closeup div { color: white; }
     #closeup div span { float: right; cursor: pointer; }
     #closeup ul { margin: 10px 0 0; padding: 0; }
@@ -205,11 +205,15 @@
       if (x && x.object && x.object instanceof THREE.Mesh) {
         var node = graphData.nodes.find(n => x.object === n.__sphere);
         var synapses = network.nodes[node.id].synapses;
+        clearTimeout(this.closeup.timeoutId); 
         this.closeup = {
           neuron: node.id,
           synapses: synapses.map(s => Object({t: s.t, w: s.w}))
         };
         this.closeup.display = true;
+        this.closeup.timeoutId = setTimeout(() => {
+          this.closeup.display = false;
+        }, 3000);
       }
     }
 
