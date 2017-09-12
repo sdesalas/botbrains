@@ -1,8 +1,8 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(60, 'tube');
+const network = new botbrain.NeuralNetwork(100, 'tube');
 
-const output = network.output('OUTPUT', [55,56, 57]);
+const output = network.output('OUTPUT', 3);
 const input = network.input('INPUT', [3,5,7,9]);
 
 //network.join(network, 0.5, 0.5);

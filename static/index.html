@@ -18,15 +18,21 @@
     #stats dl { position: relative; display: block; height: 13px; width: 100%; background: rgba(120, 120, 120, 0.3); margin: 0 0 10px; }
     #stats dd { position: absolute; width: 0%; height: 13px; background: #3f6674; margin: 0; }
     #stats dt { position: absolute; font-size: 10px; padding: 0 3px; }
-    #info { width: 100%; position: absolute; color: white; padding: 20px; bottom: 0; }
+    #info { width: 100%; position: absolute; color: white; bottom: 0; }
     #info dl { display: block; float: left; width: 16%; text-align: center;}
     #info dd { display: block; font-size: 14pt; font-weight: bold; opacity: 0.8; margin: 0; }
     #info dt { display: block; font-size: 8pt; line-height: 15px; opacity: 0.5; }
-    #left { left: 40px; }
-    #right { right: 40px; }
+    #left { left: 20px; }
+    #right { right: 20px; }
     #left a, #right a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 11pt; }
     #left .fa { color: green; display: block; }
     #right .fa { color: red; display: block; }
+    @media screen and (max-width: 480px) {
+      #stats { width: 80px; }
+      #stats dt { font-size: 8px; }
+      #info dd { font-size: 9pt; }
+      #info dt { font-size: 6pt; }
+    }
   </style>
   <link href="./lib/font-awesome.css" rel="stylesheet" type="text/css">
   <script src="./lib/3d-force-graph.min.js"></script>
