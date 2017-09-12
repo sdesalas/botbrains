@@ -2,6 +2,8 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no, minimal-ui" />
+  <title>botbrains :: NeuralNetwork Visualization</title>
   <style>
     body { background-color: #000; margin: 0; overflow: hidden; font-family: Tahoma, Helvetica, Arial; user-select: none; }
     nav { position: absolute; top: 40%; text-align: center; opacity: 0.5; }
@@ -22,7 +24,7 @@
     #info dt { display: block; font-size: 8pt; line-height: 15px; opacity: 0.5; }
     #left { left: 40px; }
     #right { right: 40px; }
-    a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 18px; }
+    #left a, #right a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 11pt; }
     #left .fa { color: green; display: block; }
     #right .fa { color: red; display: block; }
   </style>
@@ -31,15 +33,14 @@
   <script src="./lib/vue-2.4.2.min.js"></script>
   <script src="./lib/socket.io.js"></script>
   <script src="./NeuralNetwork.js"></script>
-  <title>botbrains :: NeuralNetwork Visualization</title>
 </head>
 <body>
   <div id="app" :style="{ display: initialized ? 'block' : 'none' }">
     <nav id="left">
-      <a href="javascript:;" v-on:click="window.socket.emit('learn')"><i class="fa fa-check fa-5x"></i>GOOD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('learn')"><i class="fa fa-check fa-4x"></i>GOOD ROBOT!</a>
     </nav>
     <nav id="right">
-      <a href="javascript:;" v-on:click="window.socket.emit('unlearn')"><i class="fa fa-times fa-5x"></i>BAD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('unlearn')"><i class="fa fa-times fa-4x"></i>BAD ROBOT!</a>
     </nav>
     <section id="stats">
       <dl>
