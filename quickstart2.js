@@ -1,8 +1,8 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(200, 'sausage', { signalSpeed: 20 });
-const network2 = new botbrain.NeuralNetwork(140, 'ring');
-const network3 = new botbrain.NeuralNetwork(60, 'sausage');
+const network = new botbrain.NeuralNetwork(300, 'sausage', { signalSpeed: 20 });
+const network2 = new botbrain.NeuralNetwork(340, 'ring');
+const network3 = new botbrain.NeuralNetwork(260, 'sausage');
 
 network.name = 'NUMBER 1';
 network2.name = 'NUMBER 2';

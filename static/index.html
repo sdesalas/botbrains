@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no, minimal-ui" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>botbrains :: NeuralNetwork Visualization</title>
   <style>
     body { background-color: #000; margin: 0; overflow: hidden; font-family: Tahoma, Helvetica, Arial; user-select: none; }
@@ -22,9 +24,10 @@
     #info dl { display: block; float: left; width: 16%; text-align: center;}
     #info dd { display: block; font-size: 14pt; font-weight: bold; opacity: 0.8; margin: 0; }
     #info dt { display: block; font-size: 8pt; line-height: 15px; opacity: 0.5; }
-    #left { left: 20px; }
-    #right { right: 20px; }
-    #left a, #right a { outline: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 11pt; }
+    #left { left: 40px; }
+    #right { right: 40px; }
+    #left a, #right a { outline: none; user-select: none; cursor: pointer; text-decoration: none; color: #fff; font-size: 12pt; -webkit-tap-highlight-color: rgba(255, 255, 255, 0); }
+    #left a:active .fa, #right a:active .fa { color: white; text-shadow: 0 0 15px white; }
     #left .fa { color: green; display: block; }
     #right .fa { color: red; display: block; }
     @media screen and (max-width: 480px) {
@@ -32,6 +35,8 @@
       #stats dt { font-size: 8px; }
       #info dd { font-size: 9pt; }
       #info dt { font-size: 6pt; }
+      #left { left: 20px; } #right { right: 20px; }
+      #left a, #right a { font-size: 10pt; }
     }
   </style>
   <link href="./lib/font-awesome.css" rel="stylesheet" type="text/css">
@@ -43,10 +48,10 @@
 <body>
   <div id="app" :style="{ display: initialized ? 'block' : 'none' }">
     <nav id="left">
-      <a href="javascript:;" v-on:click="window.socket.emit('learn')"><i class="fa fa-check fa-4x"></i>GOOD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('learn')"><i class="fa fa-check fa-4x"></i>GOOD!</a>
     </nav>
     <nav id="right">
-      <a href="javascript:;" v-on:click="window.socket.emit('unlearn')"><i class="fa fa-times fa-4x"></i>BAD ROBOT!</a>
+      <a href="javascript:;" v-on:click="window.socket.emit('unlearn')"><i class="fa fa-times fa-4x"></i>BAD!</a>
     </nav>
     <section id="stats">
       <dl>

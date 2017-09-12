@@ -38,6 +38,7 @@ class NeuralNetwork extends EventEmitter {
     this.nodes = [];
     this.inputs = {};
     this.outputs = {};
+    this.setMaxListeners(20);
     if (typeof size === 'number') {
       // Initialize with size
       this.init(opts);
@@ -442,8 +443,6 @@ class Neuron extends EventEmitter {
     // certain patterns can trigger even weak synapses.
     potential = isNaN(potential) ? 1 : potential;
     this.potential += potential;
-    // But duration is very short
-    setTimeout(() => this.potential -= potential, signalFireDelay);
     // Should we fire onward connections?
     if (this.potential > opts.signalFireThreshold) {
       this.isfiring = true;
@@ -453,7 +452,7 @@ class Neuron extends EventEmitter {
         let i = this.synapses.length;
         while(i--) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.w + potential) / 2).isfiring) {
+          if (s && s.target && s.target.fire((s.w + this.potential) / 2).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
             s.l = new Date().getTime();
@@ -469,6 +468,8 @@ class Neuron extends EventEmitter {
         this.emit('ready', this.id);
       }, signalRecovery);
     }
+    // Bring neuron potential back down
+    setTimeout(() => this.potential -= potential, signalFireDelay);
     return this;
   }
 
