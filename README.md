@@ -209,14 +209,14 @@ network.output('Buzzer')
 ```
 
 
-### network.concat(network)
+### network.join(network, at, surfaceArea)
 
-Merges 2 networks, returning a third network which combines both of them.
+Merges a network into another network, or into itself.
 
 ```js
-const network1 = new NeuralNetwork(100, 'ball');
-const network2 = new NeuralNetwork(100, 'ring');
-const network3 = network1.concat(network2);
+const network = new NeuralNetwork(100, 'ball');
+network.join(new NeuralNetwork(100, 'ring'), 0.5, 0.1); // join on the middle, using 10% of nodes.
+network.join(network); // join on itself
 ```
 
 ### Shaper Function
