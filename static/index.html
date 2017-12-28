@@ -130,6 +130,8 @@
             this.updateNetwork();
             this.visualise();
           }
+          window.addEventListener('resize', () => location.href = location.href);
+          window.onbeforeunload = function() { socket.disconnect(); };
         });
 
         socket.on('fire', id => this.fire(id));
@@ -142,6 +144,7 @@
             this.updateNetwork();
           }
         });
+
       }
     });
 
@@ -225,7 +228,7 @@
         this.closeup.display = true;
         this.closeup.timeoutId = setTimeout(() => {
           this.closeup.display = false;
-        }, 3000);
+        }, 5000);
       }
     }
 

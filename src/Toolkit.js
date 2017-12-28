@@ -25,7 +25,7 @@ class Toolkit {
       if (this.io) {
         this.io.disconnect() || this.io.close();
       }
-      this.io = io.listen(this.server);
+      this.io = io.listen(this.server, {'forceNew': true });
       this.io.sockets.on('connection', this.onConnection.bind(this));
     }
     return this.server;
@@ -33,6 +33,10 @@ class Toolkit {
 
   static onConnection(socket) {
     socket.emit('connection', this.network && this.network.export());
+    // Track connected clients
+    let clientCount = 0;
+    console.log(`connection. clients: ${++clientCount}`);
+    socket.on('disconnect', () => console.log(`disconnect. clients: ${--clientCount}`));
     // Track neuron change reactions, using 'volatile' mode
     this.network.on('fire', id => socket.volatile.emit('fire', id));
     // Handle incoming events
