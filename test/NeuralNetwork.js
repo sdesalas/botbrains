@@ -57,7 +57,7 @@ describe('NeuralNetwork', () => {
     beforeEach(() => {
       node = network.nodes[0];
       synapse = node.synapses[0];
-      startWeight = synapse.w = network.opts.signalFireThreshold;
+      startWeight = synapse.w = synapse.ltw = network.opts.signalFireThreshold;
       signalFireDelay = 1000 / network.opts.signalSpeed;
       node.fire();
     });
