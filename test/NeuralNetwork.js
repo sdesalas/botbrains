@@ -26,7 +26,8 @@ describe('NeuralNetwork', () => {
   });
 
   it('.strength', () => {
-    assert.around(network.strength, 0.40);
+    assert.greaterThan(network.strength, 0.1);
+    assert.lessThan(network.strength, 0.4);
   });
 
   it('.export()', () => {
