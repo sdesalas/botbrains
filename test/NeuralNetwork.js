@@ -26,7 +26,7 @@ describe('NeuralNetwork', () => {
   });
 
   it('.strength', () => {
-    assert.around(network.strength, 0.40);
+    assert.between(network.strength, 0, 0.5);
   });
 
   it('.export()', () => {
@@ -57,7 +57,7 @@ describe('NeuralNetwork', () => {
     beforeEach(() => {
       node = network.nodes[0];
       synapse = node.synapses[0];
-      startWeight = synapse.w = 0.65;
+      startWeight = synapse.w = synapse.ltw = network.opts.signalFireThreshold;
       signalFireDelay = 1000 / network.opts.signalSpeed;
       node.fire();
     });
