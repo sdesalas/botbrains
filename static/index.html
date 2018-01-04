@@ -101,6 +101,8 @@
 
     var network;
     var graphData;
+    var lineColor = 0xccfffb;
+    var lineColorNeg = 0xff7575;
     var socket = io();
     var UI = new Vue({
       el: '#app',
@@ -163,8 +165,10 @@
       Graph
         .warmupTicks(120)
         .cooldownTicks(0)
-        .sphereColor(0x8fe7ff)
+      //  .sphereColor(0x8fe7ff)
       //.highlightItems(true)
+        .lineColor(lineColor)
+        .lineColorNeg(lineColorNeg)
         .forceEngine('ngraph')
         .graphData({ nodes, links })
         .nodeRelSize(5)
@@ -175,12 +179,14 @@
     };
 
     UI.updateNetwork = function() {
-      //console.log('updateNetwork', { network, graphData });
+      console.log('updateNetwork', { network, graphData });
       if (network) {
         if (graphData) { // update synapses
           let lines = graphData.links.map(l => l.__line);
           network.synapses.forEach((s, i) => {
-            lines[i].material.opacity = s.w
+            // Set both opacity and color (excitatory and inhibitory connections)
+            lines[i].material.opacity = Math.abs(s.w);
+            lines[i].material.color.setHex(s.w > 0 ? lineColor : lineColorNeg);
           });
         }
         // Update measurements

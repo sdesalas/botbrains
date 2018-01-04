@@ -150,9 +150,10 @@ class NeuralNetwork extends EventEmitter {
     // in proportion to how recently they fired
     this.synapses.forEach(s => {
       const recency = s.l - cutoff;
-      // If synapse hasnt fired then use inverse.
       if (recency > 0) {
-        s.w *= 1 + (recency / learningPeriod) * (rate * opts.learningRate);
+        // Synapse potentiation applies to both excitatory and inhibitory connections
+        const potentiation = (recency / learningPeriod) * (rate * opts.learningRate);
+        s.w += (s.w > 0 ? 1 : -1) * potentiation;
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
