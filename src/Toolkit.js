@@ -45,8 +45,8 @@ class Toolkit {
     });
     // Polling to keep client updated of the state of the network
     setInterval(() => this.getStats(stats => socket.emit('stats', stats)), 200);
-    setInterval(() => this.checkUpdate(socket, this.network.weight), 1000);
-    this.checkUpdate(socket, this.network.weight);
+    setInterval(() => this.checkUpdate(socket, this.network.hash), 1000);
+    this.checkUpdate(socket, this.network.hash);
   }
 
   static handle(socket, event, data) {
@@ -61,10 +61,10 @@ class Toolkit {
     }
   }
 
-  static checkUpdate(socket, weight) {
+  static checkUpdate(socket, hash) {
     // Send event, but only if the network has changed
-    if (!this.lastWeight || this.lastWeight !== weight) {
-      this.lastWeight = weight;
+    if (!this.lastHash || this.lastHash !== hash) {
+      this.lastHash = hash;
       socket.emit('update', this.network.export());
     }
   }

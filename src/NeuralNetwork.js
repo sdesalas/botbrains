@@ -11,7 +11,8 @@ const DEFAULTS = {
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.15,          // max % increase/decrease to synapse strength when learning
+  learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
+  retentionRate: 0.05         // shift in retention of new memories to long term memory
 };
 
 class NeuralNetwork extends EventEmitter {
@@ -121,45 +122,39 @@ class NeuralNetwork extends EventEmitter {
      * network.learn(-1):  // Do less of something in recent past
      * network.learn(0.1); // Same with 10% strength
      * ```
-     * @param {float} [rate=1] rate of learning (betweent 0 and 1)
+     * @param {float} [rate=1] rate of learning (between 0 and 1)
      */
   learn(rate) {
     const opts = this.opts;
+    const synapses = this.synapses;
     const now = new Date().getTime();
-    const learningPeriod = this.opts.learningPeriod;
+    const learningPeriod = opts.learningPeriod;
     const cutoff = now - learningPeriod;
     rate = Utils.constrain(isNaN(rate) ? 1 : rate, -1, 1);
 
-    if (rate < 0) {
-      // When something bad has happened, the lack of synapses
-      // firing is also part of the problem, so we can
-      // reactivate old/unused synapses for re-use.
-      this.synapses
-        .filter(s => !s.l || s.l < cutoff) // not used or less than the cutoff
-        .filter(s => Math.random() < 0.05) // random 5% only
-        .forEach(s => {
-          // Strengthen by learning rate
-          s.w += -1 * rate * opts.learningRate;
-          s.w = Utils.constrain(s.w, -0.5, 1);
-        });
-    }
     // Decay synapses to allow new learning
-    this.decay(rate * opts.learningRate);
-    //}
-    // Strengthen / weaken synapses that fired recently
-    // in proportion to how recently they fired
-    this.synapses.forEach(s => {
-      const recency = s.l - cutoff;
-      if (recency > 0) {
-        // Synapse potentiation applies to both excitatory and inhibitory connections
-        const potentiation = (recency / learningPeriod) * (rate * opts.learningRate);
-        s.w += (s.w > 0 ? 1 : -1) * potentiation;
-        // Make sure weight is between -0.5 and 1
-        // Allow NEGATIVE weighing as real neurons do,
-        // inhibiting onward connections in some cases.
+    const decay = this.decay(synapses, rate);
+    // Strengthen synapses that fired recently
+    const potentiation = this.potentiate(synapses, rate, cutoff);
+    // Spread difference to maintain network weight
+    const diff = potentiation - decay;
+    if (rate > 0) {
+      // If the feedback was positive just spread difference
+      // evenly over all synapses
+      const count = synapses.length;
+      synapses.forEach(s => s.w -= diff/count);
+    } else {
+      // Otherwise when something bad has happens, we assume
+      // the lack of synapses firing is also part of the problem,
+      // so we can reactivate old/unused synapses for re-use.
+      const candidates = synapses
+        .filter(s => !s.l || s.l < cutoff) // not used or less than the cutoff
+        .filter(() => Math.random() < 0.05); // random 5% only
+      candidates.forEach(s => {
+        s.w += diff/candidates.length;
         s.w = Utils.constrain(s.w, -0.5, 1);
-      }
-    });
+      });
+    }
     return this;
   }
 
@@ -180,22 +175,48 @@ class NeuralNetwork extends EventEmitter {
      * This algorithm is adaptive, in other words, connections
      * will decay significantly faster if there are too many of them.
      * @param {float} [rate=1] rate of decay, between 0 and 1 
+     * @return {float} loss of weight by the network 
      */
-  decay(rate) {
-    const strength = (1-Math.pow(1-this.strength, 6)) * Math.abs(rate);
-    const synapses = this.synapses;
-    const stableLevel = this.opts.signalFireThreshold / 2;
-    // Use fast recursion (instead of Array.prototype.forEach)
-    let i = synapses.length;
-    while(i--) {
-      const s = synapses[i], 
-        avgWeight = (s.w + s.ltw) / 2;
-      // short term weight decays fast
-      s.w = strength * stableLevel + (1-strength) * avgWeight;
-      // long term weight decays slowly
-      s.ltw = s.ltw * 3/4 + avgWeight * 1/4;
-    }
-    return this;
+  decay(synapses, rate) {
+    const opts = this.opts;
+    const tendency = this.strength / 2 + Math.abs(rate * opts.learningRate) / 2;
+    const stableLevel = opts.signalFireThreshold / 2;
+    const decay = synapses.reduce((total, s) => {
+      // short term weight decays fast towards the average of long term and stable levels
+      const target = (s.ltw + stableLevel) / 2;
+      const loss = (s.w - target) * tendency;
+      s.w = s.w - loss;
+      // long term weight shifts depending on retention rate
+      s.ltw = s.w * opts.retentionRate + s.ltw * (1-opts.retentionRate);
+      return total + loss;
+    }, 0);
+    return decay;
+  }
+
+  /**
+   * Strengthen / weaken synapses that fired recently
+   * in proportion to how recently they fired
+   * @param {float} rate rate of learning (betweent 0 and 1)
+   * @param {int} cutoff the cutoff time for strengthening synapses
+   */
+  potentiate(synapses, rate, cutoff) {
+    const opts = this.opts;
+    const learningPeriod = opts.learningPeriod;
+    const potentiation = synapses.reduce((total, s) => {
+      const recency = s.l - cutoff;
+      if (recency > 0) {
+        // Synapse potentiation applies to both excitatory and inhibitory connections
+        const potentiation = (recency / learningPeriod) * (rate * opts.learningRate);
+        s.w += (s.w > 0 ? 1 : -1) * potentiation;
+        // Make sure weight is between -0.5 and 1
+        // Allow NEGATIVE weighing as real neurons do,
+        // inhibiting onward connections in some cases.
+        s.w = Utils.constrain(s.w, -0.5, 1);
+        return total + (s.w > 0 ? 1 : -1) * potentiation;
+      }
+      return total;
+    }, 0);
+    return potentiation;
   }
 
   /**
@@ -381,7 +402,16 @@ class NeuralNetwork extends EventEmitter {
 
   /** Array of synapses */
   get synapses() {
-    return this.nodes.reduce((acc, node) => acc.concat(node.synapses), []);
+    const result = [];
+    for (let i = 0; i < this.nodes.length; i++) {
+      result.push(...this.nodes[i].synapses);
+    }
+    return result;
+  }
+
+  /** Network signature used to detect changes */
+  get hash() {
+    return Math.floor(this.synapses.reduce((acc, s, i) => acc + s.w * (i << 10), 0)); 
   }
 }
 

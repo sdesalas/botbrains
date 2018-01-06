@@ -460,7 +460,8 @@ const DEFAULTS = {
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
-  learningRate: 0.15,          // max % increase/decrease to synapse strength when learning
+  learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
+  retentionRate: 0.05         // shift in retention of new memories to long term memory
 };
 
 class NeuralNetwork extends events {
@@ -487,6 +488,7 @@ class NeuralNetwork extends events {
     this.nodes = [];
     this.inputs = {};
     this.outputs = {};
+    this.setMaxListeners(20);
     if (typeof size === 'number') {
       // Initialize with size
       this.init(opts);
@@ -569,44 +571,39 @@ class NeuralNetwork extends events {
      * network.learn(-1):  // Do less of something in recent past
      * network.learn(0.1); // Same with 10% strength
      * ```
-     * @param {float} [rate=1] rate of learning (betweent 0 and 1)
+     * @param {float} [rate=1] rate of learning (between 0 and 1)
      */
   learn(rate) {
     const opts = this.opts;
+    const synapses = this.synapses;
     const now = new Date().getTime();
-    const learningPeriod = this.opts.learningPeriod;
+    const learningPeriod = opts.learningPeriod;
     const cutoff = now - learningPeriod;
     rate = Utils_1.constrain(isNaN(rate) ? 1 : rate, -1, 1);
 
-    if (rate < 0) {
-      // When something bad has happened, the lack of synapses
-      // firing is also part of the problem, so we can
-      // reactivate old/unused synapses for re-use.
-      this.synapses
-        .filter(s => !s.l || s.l < cutoff) // not used or less than the cutoff
-        .filter(s => Math.random() < 0.05) // random 5% only
-        .forEach(s => {
-          // Strengthen by learning rate
-          s.w += -1 * rate * opts.learningRate;
-          s.w = Utils_1.constrain(s.w, -0.5, 1);
-        });
-    }
     // Decay synapses to allow new learning
-    this.decay(rate * opts.learningRate);
-    //}
-    // Strengthen / weaken synapses that fired recently
-    // in proportion to how recently they fired
-    this.synapses.forEach(s => {
-      const recency = s.l - cutoff;
-      // If synapse hasnt fired then use inverse.
-      if (recency > 0) {
-        s.w *= 1 + (recency / learningPeriod) * (rate * opts.learningRate);
-        // Make sure weight is between -0.5 and 1
-        // Allow NEGATIVE weighing as real neurons do,
-        // inhibiting onward connections in some cases.
+    const decay = this.decay(synapses, rate);
+    // Strengthen synapses that fired recently
+    const potentiation = this.potentiate(synapses, rate, cutoff);
+    // Spread difference to maintain network weight
+    const diff = potentiation - decay;
+    if (rate > 0) {
+      // If the feedback was positive just spread difference
+      // evenly over all synapses
+      const count = synapses.length;
+      synapses.forEach(s => s.w -= diff/count);
+    } else {
+      // Otherwise when something bad has happens, we assume
+      // the lack of synapses firing is also part of the problem,
+      // so we can reactivate old/unused synapses for re-use.
+      const candidates = synapses
+        .filter(s => !s.l || s.l < cutoff) // not used or less than the cutoff
+        .filter(() => Math.random() < 0.05); // random 5% only
+      candidates.forEach(s => {
+        s.w += diff/candidates.length;
         s.w = Utils_1.constrain(s.w, -0.5, 1);
-      }
-    });
+      });
+    }
     return this;
   }
 
@@ -627,22 +624,48 @@ class NeuralNetwork extends events {
      * This algorithm is adaptive, in other words, connections
      * will decay significantly faster if there are too many of them.
      * @param {float} [rate=1] rate of decay, between 0 and 1 
+     * @return {float} loss of weight by the network 
      */
-  decay(rate) {
-    const strength = (1-Math.pow(1-this.strength, 6)) * Math.abs(rate);
-    const synapses = this.synapses;
-    const stableLevel = this.opts.signalFireThreshold / 2;
-    // Use fast recursion (instead of Array.prototype.forEach)
-    let i = synapses.length;
-    while(i--) {
-      const s = synapses[i], 
-        avgWeight = (s.w + s.ltw) / 2;
-      // short term weight decays fast
-      s.w = strength * stableLevel + (1-strength) * avgWeight;
-      // long term weight decays slowly
-      s.ltw = s.ltw * 3/4 + avgWeight * 1/4;
-    }
-    return this;
+  decay(synapses, rate) {
+    const opts = this.opts;
+    const tendency = this.strength / 2 + Math.abs(rate * opts.learningRate) / 2;
+    const stableLevel = opts.signalFireThreshold / 2;
+    const decay = synapses.reduce((total, s) => {
+      // short term weight decays fast towards the average of long term and stable levels
+      const target = (s.ltw + stableLevel) / 2;
+      const loss = (s.w - target) * tendency;
+      s.w = s.w - loss;
+      // long term weight shifts depending on retention rate
+      s.ltw = s.w * opts.retentionRate + s.ltw * (1-opts.retentionRate);
+      return total + loss;
+    }, 0);
+    return decay;
+  }
+
+  /**
+   * Strengthen / weaken synapses that fired recently
+   * in proportion to how recently they fired
+   * @param {float} rate rate of learning (betweent 0 and 1)
+   * @param {int} cutoff the cutoff time for strengthening synapses
+   */
+  potentiate(synapses, rate, cutoff) {
+    const opts = this.opts;
+    const learningPeriod = opts.learningPeriod;
+    const potentiation = synapses.reduce((total, s) => {
+      const recency = s.l - cutoff;
+      if (recency > 0) {
+        // Synapse potentiation applies to both excitatory and inhibitory connections
+        const potentiation = (recency / learningPeriod) * (rate * opts.learningRate);
+        s.w += (s.w > 0 ? 1 : -1) * potentiation;
+        // Make sure weight is between -0.5 and 1
+        // Allow NEGATIVE weighing as real neurons do,
+        // inhibiting onward connections in some cases.
+        s.w = Utils_1.constrain(s.w, -0.5, 1);
+        return total + (s.w > 0 ? 1 : -1) * potentiation;
+      }
+      return total;
+    }, 0);
+    return potentiation;
   }
 
   /**
@@ -724,7 +747,7 @@ class NeuralNetwork extends events {
     const outputNodes = this.outputs[label] || this.createSite(this.outputs, label, bits);
     this.on('fire', id => {
       const neuron = this.nodes[id];
-      if (outputNodes.indexOf(neuron)) {
+      if (outputNodes.includes(neuron)) {
         const last = observable.lastValue;
         // Calculate average potential across all nodes
         const potential = outputNodes
@@ -744,14 +767,17 @@ class NeuralNetwork extends events {
      * Fire an individual neuron, used for testing and visualization
      * ```
      * network.fire(24);
+     * network.fire(24, 0.56); // use potential
      * ```
-     * @param {int} id 
+     * @param {int} id the neuron to fire
+     * @param {float} [potential=1] the signal strength (potential) to use
      * @return {NeuralNetwork}
      */
-  fire(id) {
+  fire(id, potential) {
     if (id && this.nodes[id]) {
-      return this.nodes[id].fire();
+      return this.nodes[id].fire(potential);
     }
+    return this;
   }
 
   /** 
@@ -769,36 +795,41 @@ class NeuralNetwork extends events {
   /** 
      * Allows 2 networks to be chained together creating a third network. 
      * ```
-     * let network3 = network1.concat(network2)
+     * let network3 = network1.join(network2)
      * ```
      * @param {NeuralNetwork} network extra network to append
      * @param {float} at location (between 0-1) where the network should be appended
      * @param {float} surfaceArea % of nodes overlapping
      * @return {NeuralNetwork} resulting neural network
      */
-  concat(network, at, surfaceArea) {
-    const clone = this.clone(); // default settings will be as per first network
-    const size = clone.size;
+  join(network, at, surfaceArea) {
+    let offset = this.size;
     if (network && network.nodes) {
-      network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
+      if (this !== network) {
+        network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
+        const additionalNodes = network.nodes.splice(0, network.size).map(n => n.shift(offset));
+        additionalNodes.forEach(n => n.on('fire', (i, p) => this.emit('fire', i, p)));
+        this.nodes.push(...additionalNodes);
+        Object.keys(network.inputs).forEach(k => this.inputs[k] = network.inputs[k]);
+        Object.keys(network.outputs).forEach(k => this.outputs[k] = network.outputs[k]);
+      }
+      // Add attachment points
       surfaceArea = surfaceArea || 0.05; // 5% nodes overlapping (bear in mind 4 synapses per node is 20% node overlap)
       at = at || 0.975; // where should we intersect? Beginning = 0, End = 1;
-      const fromPos = Math.floor(at*size - size*(surfaceArea/2));
-      const toPos = Math.ceil(at*size + size*(surfaceArea/2));
-      clone.nodes.forEach((neuron, i) => {
-        if (i >= fromPos && i <= toPos) {
-          const n = Neuron.generate(i, size, () => Random_1.integer(size, size * (1+surfaceArea)), clone.opts);
-          neuron.synapses.push(...n.synapses);
+      const range = offset*surfaceArea;
+      const begining = Math.floor(at*offset - range/2);
+      const end = Math.ceil(at*offset + range/2);
+      if (this === network) {
+        offset = 0; // Allow attaching to same network
+      }
+      this.nodes.forEach((neuron, i) => {
+        if (i >= begining && i <= end) {
+          const n = Neuron.generate(i, this.size, () => Random_1.integer(offset, offset + range), this.opts);
+          neuron.synapses.push(...n.synapses.map(s => Object.assign(s, { target: this.nodes[s.t] })));
         }
       });
-      const nodes = network.nodes.map(n => n.clone({ opts: clone.opts }, size));
-      clone.nodes.push(...nodes);
-      clone.synapses.forEach(s => s.target = clone.nodes[s.t]);
-      Object.keys(network.inputs).forEach(k => clone.inputs[k] = network.inputs[k].map(n => clone.nodes[n.id + size]));
-      Object.keys(network.outputs).forEach(k => clone.outputs[k] = network.outputs[k].map(n => clone.nodes[n.id + size]));
-      nodes.forEach(n => n.on('fire', (i, p) => clone.emit('fire', i, p)));
     }
-    return clone;
+    return this;
   }
 
   /** Number of neurons in network */
@@ -820,7 +851,16 @@ class NeuralNetwork extends events {
 
   /** Array of synapses */
   get synapses() {
-    return this.nodes.reduce((acc, node) => acc.concat(node.synapses), []);
+    const result = [];
+    for (let i = 0; i < this.nodes.length; i++) {
+      result.push(...this.nodes[i].synapses);
+    }
+    return result;
+  }
+
+  /** Network signature used to detect changes */
+  get hash() {
+    return Math.floor(this.synapses.reduce((acc, s, i) => acc + s.w * (i << 10), 0)); 
   }
 }
 
@@ -863,16 +903,14 @@ class Neuron extends events {
   }
 
   /**
-   * Clones a neuron, useful when concatenating networks
-   * @param {Object} overrides properties to override in resulting neuron
+   * Shifts a neuron, useful when concatenating networks
    * @param {int} offset number used to offset neuron id by 
    */
-  clone(overrides, offset) {
-    overrides = overrides || {};
+  shift(offset) {
     offset = offset || 0;
-    const synapses = this.synapses.map(s => Object.assign({}, s, { t: offset + s.t }));
-    const neuron = new Neuron(offset + this.id, synapses, this.opts);
-    return Object.assign(neuron, overrides);
+    this.id += offset;
+    this.synapses.forEach(s => s.t += offset);
+    return this;
   }
 
   /** Should be optimised as this gets executed very frequently. */ 
@@ -885,8 +923,6 @@ class Neuron extends events {
     // certain patterns can trigger even weak synapses.
     potential = isNaN(potential) ? 1 : potential;
     this.potential += potential;
-    // But duration is very short
-    setTimeout(() => this.potential -= potential, signalFireDelay);
     // Should we fire onward connections?
     if (this.potential > opts.signalFireThreshold) {
       this.isfiring = true;
@@ -896,7 +932,7 @@ class Neuron extends events {
         let i = this.synapses.length;
         while(i--) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.w + potential) / 2).isfiring) {
+          if (s && s.target && s.target.fire((s.w + this.potential) / 2).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
             s.l = new Date().getTime();
@@ -912,6 +948,8 @@ class Neuron extends events {
         this.emit('ready', this.id);
       }, signalRecovery);
     }
+    // Bring neuron potential back down
+    setTimeout(() => this.potential -= potential, signalFireDelay);
     return this;
   }
 
