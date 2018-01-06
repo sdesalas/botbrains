@@ -402,13 +402,24 @@ class NeuralNetwork extends EventEmitter {
   /** Percentage of active synapses in network */
   get strength() {
     const synapses = this.synapses;
-    return synapses.filter(s => s.w > this.opts.signalFireThreshold).length / synapses.length;
+    let active = 0;
+    for (let i = 0; i < synapses.length; i++) {
+      const s = synapses[i];
+      if (s.w > this.opts.signalFireThreshold) {
+        active++;
+      }
+    }
+    return active / synapses.length;
   }
 
   /** Average weight of the network */
   get weight() {
     const synapses = this.synapses;
-    return synapses.reduce((acc, s) => acc + s.w, 0) / synapses.length;
+    let weight = 0;
+    for (let i = 0; i < synapses.length; i++) {
+      weight += synapses[i].w;
+    }
+    return weight / synapses.length;
   }
 
   /** Array of synapses */
