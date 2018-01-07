@@ -12,7 +12,7 @@ const DEFAULTS = {
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
   learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
-  retentionRate: 0.05         // shift in retention of new memories to long term memory
+  retentionRate: 0.1          // shift in retention of new memories to long term memory
 };
 
 class NeuralNetwork extends EventEmitter {
