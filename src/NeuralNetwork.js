@@ -186,14 +186,14 @@ class NeuralNetwork extends EventEmitter {
      */
   decay(synapses, rate) {
     const opts = this.opts;
-    const tendency = this.strength / 2 + Math.abs(rate * opts.learningRate) / 2;
+    const tendency = (this.strength + opts.learningRate) / 2;
     const stableLevel = opts.signalFireThreshold / 2;
     let decay = 0;
     for (let i = 0; i < synapses.length; i++) {
       const s = synapses[i];
       // short term weight decays fast towards the average of long term and stable levels
       const target = (s.ltw + stableLevel) / 2;
-      const loss = (s.w - target) * tendency;
+      const loss = (s.w - target) * Math.abs(rate) * tendency;
       s.w = s.w - loss;
       // long term weight shifts depending on retention rate
       s.ltw = s.w * opts.retentionRate + s.ltw * (1-opts.retentionRate);
