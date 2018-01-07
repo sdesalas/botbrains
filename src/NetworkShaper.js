@@ -16,7 +16,7 @@ class NetworkShaper {
 
   // Tube shape
   static tube (neuron, size) {
-    var target, range = Math.ceil(size / 5);
+    var target, range = Math.ceil(size / 4);
     for (var tries = 0; tries < 3; tries++) {
       var from = -1 * range + neuron;
       var to = range + neuron;
