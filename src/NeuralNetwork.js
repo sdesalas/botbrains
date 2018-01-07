@@ -143,25 +143,24 @@ class NeuralNetwork extends EventEmitter {
       // If the feedback was positive just spread difference
       // evenly over all synapses
       for (let i = 0; i < count; i++) {
-        synapses[i] -= diff/count;
+        synapses[i].w = Utils.constrain(synapses[i].w - diff/count, -0.5, 1);
       }
     } else {
       // Otherwise when something bad has happens, we assume
       // the lack of synapses firing is also part of the problem,
       // so we can reactivate old/unused synapses for re-use.
-      const candidates = [];
+      const reuse = [];
       for (let i = 0; i < count; i++) {
         const s = synapses[i];
         if ((!s.l || s.l < cutoff) // not used or less than the cutoff
             && Math.random() < 0.05) // random 5% only
         {
-          candidates.push(s);
+          reuse.push(s);
         }
       }
-      candidates.forEach(s => {
-        s.w += diff/candidates.length;
-        s.w = Utils.constrain(s.w, -0.5, 1);
-      });
+      for (let i = 0; i < reuse.length; i++) {
+        reuse[i].w = Utils.constrain(reuse[i].w - diff/reuse.length, -0.5, 1);
+      }
     }
     return this;
   }
@@ -199,7 +198,7 @@ class NeuralNetwork extends EventEmitter {
       // long term weight shifts depending on retention rate
       s.ltw = s.w * opts.retentionRate + s.ltw * (1-opts.retentionRate);
       decay += loss;
-    };
+    }
     return decay;
   }
 
@@ -218,13 +217,17 @@ class NeuralNetwork extends EventEmitter {
       const recency = s.l - cutoff;
       if (recency > 0) {
         // Synapse potentiation applies to both excitatory and inhibitory connections
-        const potentiation = (recency / learningPeriod) * (rate * opts.learningRate);
-        s.w += (s.w > 0 ? 1 : -1) * potentiation;
+        let potentiation = (s.w > 0 ? 1 : -1) * (recency / learningPeriod) * (rate * opts.learningRate);
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
-        s.w = Utils.constrain(s.w, -0.5, 1);
-        total += (s.w > 0 ? 1 : -1) * potentiation;
+        if (s.w + potentiation > 1) {
+          potentiation = 1 - s.w;
+        } else if (s.w + potentiation < -0.5) {
+          potentiation = -0.5 - s.w;
+        }
+        s.w += potentiation;
+        total += potentiation;
       }
     }
     return total;
