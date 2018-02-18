@@ -100,7 +100,7 @@
   <script>
 
     var network;
-    var graphData;
+    var graphData = {};
     var lineColor = 0xccfffb;
     var lineColorNeg = 0xff7575;
     var socket = io();
@@ -159,21 +159,20 @@
       let nodes = network.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node) + 1 ? '#ff0000' : (inputs.indexOf(node) + 1 ? '#0000ff' : undefined) }));
       let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.target).map(s => ({ source: n.id, target: s.target.id, opacity: s.w }))), []);
       console.log({ network, inputs, outputs });
-
-      const Graph = ForceGraph3D()(document.getElementById('graph'));
-
-      Graph
-        .warmupTicks(120)
-        .cooldownTicks(0)
-      //  .sphereColor(0x8fe7ff)
-      //.highlightItems(true)
-        .lineColor(lineColor)
-        .lineColorNeg(lineColorNeg)
-        .forceEngine('ngraph')
-        .graphData({ nodes, links })
-        .nodeRelSize(5)
-        .onReady(graph => graphData = graph.graphData)
-        .onClick(x => this.focus(x));
+      
+      const Graph = new ForceGraph3D(document.getElementById('graph'), {
+        warmupTicks: 120,
+        cooldownTicks: 0,
+        sphereColor: 0x8fe7ff,
+        //highlightItems: true,
+        lineColor: lineColor,
+        lineColorNeg: lineColorNeg,
+        forceEngine: 'ngraph',
+        graphData: { nodes, links },
+        nodeRelSize: 5,
+        onReady: g => graphData = g.graphData,
+        onClick: x => this.focus(x)
+      });
 
       console.log({ graphData: graphData, links: graphData.links });
     };
@@ -181,7 +180,7 @@
     UI.updateNetwork = function() {
       console.log('updateNetwork', { network, graphData });
       if (network) {
-        if (graphData) { // update synapses
+        if (graphData && graphData.links) { // update synapses
           let lines = graphData.links.map(l => l.__line);
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
@@ -210,12 +209,11 @@
       const node = graphData && graphData.nodes && graphData.nodes[id];
       if (node && node.__sphere) {
         let material = node.__sphere.material;
-        let oldColor = material.color;
-        let fireColor = new THREE.Color(0xffffff);
-        material.color = fireColor;
+        let oldColor = material.color.getHex();
+        material.color.setHex(0xffffff);
         material.opacity = 1;
         setTimeout(() => {
-          material.color = oldColor;
+          material.color.setHex(oldColor);
           material.opacity = 0.6;
         }, this.signalRecovery);
       }
