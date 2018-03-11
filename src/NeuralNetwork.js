@@ -7,7 +7,7 @@ const Utils = require('./Utils');
 
 const DEFAULTS = {
   shape: 'tube',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 4,    // average synapses per neuron
+  connectionsPerNeuron: 6,    // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
@@ -15,21 +15,30 @@ const DEFAULTS = {
   retentionRate: 0.1          // shift in retention of new memories to long term memory
 };
 
+
 class NeuralNetwork extends EventEmitter {
     
   /**
      * Initialize neural network
-     * Either using size or serialized version
+     * Either using size 
      * ```
      * new NeuralNetwork(20);
-     * new NeuralNetwork({ nodes: [
-     *   {id: 0, s: [{i: 1, w: 0.41}] },
-     *   {id: 1, s: [{i: 2, w: 0.020}, {t: 3, w: 0.135}] },
-     *   {id: 2, s: [{i: 5, w: 0.241}] },
-     *   {id: 3, s: [{i: 1, w: 0.02}] },
-     *   {id: 4, s: [{i: 6, w: 0.92}, {t: 2, w: 0.41}] },
-     *   {id: 5, s: [{i: 2, w: 0.41}] }
-     * ]});
+     * ```
+     * or using serialized JSON
+     * ```
+     * new NeuralNetwork({ 
+     *  nodes: [ {id: 0}, {id: 1}, {id: 2}, {id: 3}, {id:4}, {id: 5}, {id: 6}],
+     *  synapses: [
+     *     {s: 0, t: 1, w: 0.41},
+     *     {s: 1, t: 2, w: 0.02},
+     *     {s: 1, t: 3, w: 0.13},
+     *     {s: 2, t: 5, w: 0.24},
+     *     {s: 3, t: 1, w: 0.02},
+     *     {s: 4, t: 6, w: 0.92},
+     *     {s: 4, t: 2, w: 0.41},
+     *     {s: 5, t: 4, w: 0.63}
+     *   ]
+     * });
      * ```
      * @param {int|Object} size 
      * @param {Object} opts 
@@ -37,82 +46,111 @@ class NeuralNetwork extends EventEmitter {
   constructor(size, opts) {
     super();
     this.nodes = [];
+    this.synapses = [];
     this.inputs = {};
     this.outputs = {};
     this.setMaxListeners(20);
     if (typeof size === 'number') {
       // Initialize with size
-      this.init(opts);
-      this.nodes = new Array(size)
-        .fill()
-        .map((n, i) => Neuron.generate(i, size, this.shaper, this.opts));
+      this.init(size, opts);
     }
-    else if (size && size.nodes && size.nodes instanceof Array) {
+    else if (size && size.nodes && size.synapses) {
       // Initialize with exported network
-      const network = size;
-      this.init(network.opts);
-      this.nodes = network.nodes.map(n => new Neuron(n.id, n.s, network.opts));
-      Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(i => this.nodes[i]));
-      Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(i => this.nodes[i]));
+      this.import(size);
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
       neuron.on('fire', (i, p) => this.emit('fire', i, p));
-      // Add synapse ref pointers to corresponding target neurons
-      neuron.synapses.forEach(s => s.target = this.nodes[s.t]);
+      // Add synapse ref pointers
+      neuron.synapses = this.synapses.filter(s => s.source === neuron);
     });
   }
 
-  /** Initialise options */ 
-  init(opts) {
+  /** Initialise using size */ 
+  init(size, opts) {
     switch(typeof opts) {
-    // new NeuralNetwork(100, function shaper() {...} )
-    case 'function':
-      this.shaper = opts;
-      this.opts = Object.assign({}, DEFAULTS);
-      break;
-    // new NeuralNetwork(100, { learningRate: 0.5, shape: 'sausage' });
-    case 'object':
-      this.shaper = NetworkShaper[opts.shape || DEFAULTS.shape];
-      this.opts = Object.assign({}, DEFAULTS, opts);
-      break;
-    // new NeuralNetwork(100);
-    // new NeuralNetwork(100, 'sausage');
-    case 'undefined':
-    case 'string':
-      this.shaper = NetworkShaper[opts || DEFAULTS.shape];
-      this.opts = Object.assign({}, DEFAULTS);
-      break;
+      // new NeuralNetwork(100, function shaper() {...} )
+      case 'function':
+        this.shaper = opts;
+        this.opts = Object.assign({}, DEFAULTS);
+        break;
+      // new NeuralNetwork(100, { learningRate: 0.5, shape: 'sausage' });
+      case 'object':
+        this.shaper = NetworkShaper[opts.shape || DEFAULTS.shape];
+        this.opts = Object.assign({}, DEFAULTS, opts);
+        break;
+      // new NeuralNetwork(100);
+      // new NeuralNetwork(100, 'sausage');
+      case 'undefined':
+      case 'string':
+        this.shaper = NetworkShaper[opts || DEFAULTS.shape];
+        this.opts = Object.assign({}, DEFAULTS);
+        break;
     }
+    // Initialize nodes and synapses
+    this.nodes = new Array(size).fill()
+      .map((n, i) => new Neuron(i, this.opts));
+    this.synapses = new Array(size).fill()
+      .reduce((synapses, n, i) => synapses.concat(this.createSynapses(i, this.shaper)), []);
+  }
+
+  /** Generate synapses for a neuron using shaper function */
+  createSynapses(i, shaperFn) {
+    const synapses = [];
+    const count = this.opts.connectionsPerNeuron;
+    for (let s = 0; s < count; s++) {
+      const source = this.nodes[i],
+        // target is defined by shaper function
+        target = this.nodes[shaperFn(this.size, i, s, count)],
+        // initial weight is at threshold
+        weight = this.opts.signalFireThreshold * 0.6;
+      
+      if (source && target) {
+        synapses.push({ source, target, weight, ltw: weight }); 
+      }
+    }
+    return synapses;
   }
 
   /**
-     * Clones network, useful to mutating network to determine fittest alternative
-     */
-  clone() {
-    return new NeuralNetwork(this.export());
+   * Imports a JSON-serialized network object
+   * @param {Object} network 
+   */
+  import(network) {
+    this.init(network.opts);
+    this.nodes = network.nodes.map(n => new Neuron(n.id, network.opts));
+    this.synapses = network.synapses.map(s => ({ source: this.nodes[s.s], target: this.nodes[s.t], weight: s.w, ltw: s.w }));
+    Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(id => this.nodes[id]));
+    Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(id => this.nodes[id]));
   }
 
   /**
-     * Exports network, useful for cloning and saving to disk
-     */
+   * Exports network as serialized JSON, useful for cloning and saving to disk
+   */
   export() {
     const inputs = {}, outputs = {};
     for(const k in this.inputs) { inputs[k] = this.inputs[k].map(n => n.id); }
     for(const k in this.outputs) { outputs[k] = this.outputs[k].map(n => n.id); }
     return {
-      nodes: this.nodes.map(node => Object({
-        id: node.id,
-        s: node.synapses
-          .slice()
-          // Remove circular ref pointers, use long term synapse weight
-          .map(s => Object({t: s.t, w: s.w}))
+      nodes: this.nodes.map(node => ({ 
+        id: node.id
+      })),
+      synapses: this.synapses.map(s => ({ 
+        s: this.nodes.indexOf(s.source),
+        t: this.nodes.indexOf(s.target),
+        w: s.weight
       })),
       opts: Object.assign({}, this.opts),
-      // Clone arrays inside hashmaps
       inputs,
       outputs
     };
+  }
+
+  /**
+   * Clones network, useful to mutating network to determine fittest alternative
+   */
+  clone() {
+    return new NeuralNetwork(this.export());
   }
 
   /**
@@ -133,9 +171,9 @@ class NeuralNetwork extends EventEmitter {
     rate = Utils.constrain(isNaN(rate) ? 1 : rate, -1, 1);
 
     // Decay synapses to allow new learning
-    const decay = this.decay(synapses, rate);
+    const decay = this.decay(rate);
     // Strengthen synapses that fired recently
-    const potentiation = this.potentiate(synapses, rate, cutoff);
+    const potentiation = this.potentiate(rate, cutoff);
     // Spread difference to maintain network weight
     const diff = potentiation - decay;
     const count = synapses.length;
@@ -143,7 +181,7 @@ class NeuralNetwork extends EventEmitter {
       // If the feedback was positive just spread difference
       // evenly over all synapses
       for (let i = 0; i < count; i++) {
-        synapses[i].w = Utils.constrain(synapses[i].w - diff/count, -0.5, 1);
+        synapses[i].weight = Utils.constrain(synapses[i].weight - diff/count, -0.5, 1);
       }
     } else {
       // Otherwise when something bad has happens, we assume
@@ -152,14 +190,14 @@ class NeuralNetwork extends EventEmitter {
       const reuse = [];
       for (let i = 0; i < count; i++) {
         const s = synapses[i];
-        if ((!s.l || s.l < cutoff) // not used or less than the cutoff
-            && Math.random() < 0.05) // random 5% only
+        if ((!s.fired || s.fired < cutoff) // not used or less than the cutoff
+            && Math.random() < 0.5) // random 50%
         {
           reuse.push(s);
         }
       }
       for (let i = 0; i < reuse.length; i++) {
-        reuse[i].w = Utils.constrain(reuse[i].w - diff/reuse.length, -0.5, 1);
+        reuse[i].weight = Utils.constrain(reuse[i].weight - diff/reuse.length, -0.5, 1);
       }
     }
     return this;
@@ -184,19 +222,19 @@ class NeuralNetwork extends EventEmitter {
      * @param {float} [rate=1] rate of decay, between 0 and 1 
      * @return {float} loss of weight by the network 
      */
-  decay(synapses, rate) {
+  decay(rate) {
     const opts = this.opts;
     const tendency = (this.strength + opts.learningRate) / 2;
     const stableLevel = opts.signalFireThreshold / 2;
     let decay = 0;
-    for (let i = 0; i < synapses.length; i++) {
-      const s = synapses[i];
+    for (let i = 0; i < this.synapses.length; i++) {
+      const s = this.synapses[i];
       // short term weight decays fast towards the average of long term and stable levels
       const target = (s.ltw + stableLevel) / 2;
-      const loss = (s.w - target) * Math.abs(rate) * tendency;
-      s.w = s.w - loss;
+      const loss = (s.weight - target) * Math.abs(rate) * tendency;
+      s.weight = s.weight - loss;
       // long term weight shifts depending on retention rate
-      s.ltw = s.w * opts.retentionRate + s.ltw * (1-opts.retentionRate);
+      s.ltw = s.weight * opts.retentionRate + s.ltw * (1-opts.retentionRate);
       decay += loss;
     }
     return decay;
@@ -208,25 +246,25 @@ class NeuralNetwork extends EventEmitter {
    * @param {float} rate rate of learning (betweent 0 and 1)
    * @param {int} cutoff the cutoff time for strengthening synapses
    */
-  potentiate(synapses, rate, cutoff) {
+  potentiate(rate, cutoff) {
     const opts = this.opts;
     const learningPeriod = opts.learningPeriod;
     let total = 0;
-    for (let i = 0; i < synapses.length; i++) {
-      const s = synapses[i];
-      const recency = s.l - cutoff;
+    for (let i = 0; i < this.synapses.length; i++) {
+      const s = this.synapses[i];
+      const recency = s.fired - cutoff;
       if (recency > 0) {
         // Synapse potentiation applies to both excitatory and inhibitory connections
-        let potentiation = (s.w > 0 ? 1 : -1) * (recency / learningPeriod) * (rate * opts.learningRate);
+        let potentiation = (s.weight > 0 ? 1 : -1) * (recency / learningPeriod) * (rate * opts.learningRate);
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
-        if (s.w + potentiation > 1) {
-          potentiation = 1 - s.w;
-        } else if (s.w + potentiation < -0.5) {
-          potentiation = -0.5 - s.w;
+        if (s.weight + potentiation > 1) {
+          potentiation = 1 - s.weight;
+        } else if (s.weight + potentiation < -0.5) {
+          potentiation = -0.5 - s.weight;
         }
-        s.w += potentiation;
+        s.weight += potentiation;
         total += potentiation;
       }
     }
@@ -258,7 +296,7 @@ class NeuralNetwork extends EventEmitter {
       // Find starting/ending point and add nodes to site
       const pos = isOutput ? 
         Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].map(n => n.id).concat(a)), this.size) - 2 :
-        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 2;
+        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 1;
       nodes = new Array(bits || 1)
         .fill()
         .map((b, i) => this.nodes[isOutput ? pos - i : pos + i]);
@@ -290,8 +328,9 @@ class NeuralNetwork extends EventEmitter {
       if (typeof data === 'number' && inputNodes && inputNodes.length) {
         // Distribute input signal across nodes
         const potential = Utils.constrain(data, 0, 1);
-        let i = inputNodes.length;
-        while(i--) inputNodes[i].fire(potential);
+        for (let i = 0; i < inputNodes.length; i++) {
+          inputNodes[i].fire(potential);
+        }
       }
     };
   }
@@ -369,12 +408,16 @@ class NeuralNetwork extends EventEmitter {
      */
   join(network, at, surfaceArea) {
     let offset = this.size;
-    if (network && network.nodes) {
+    if (network && network.nodes && network.synapses) {
       if (this !== network) {
-        network = network instanceof NeuralNetwork ? network : new NeuralNetwork(network);
-        const additionalNodes = network.nodes.splice(0, network.size).map(n => n.shift(offset));
-        additionalNodes.forEach(n => n.on('fire', (i, p) => this.emit('fire', i, p)));
-        this.nodes.push(...additionalNodes);
+        // Make a copy and extract all nodes/synapses/inputs/outputs
+        network = network instanceof NeuralNetwork ? network.clone() : new NeuralNetwork(network);
+        network.nodes.forEach(n => {
+          n.id += this.size; // shift ids past the end
+          n.on('fire', (i, p) => this.emit('fire', i, p));
+        });
+        this.nodes.push(...network.nodes.splice(0));
+        this.synapses.push(...network.synapses.splice(0));
         Object.keys(network.inputs).forEach(k => this.inputs[k] = network.inputs[k]);
         Object.keys(network.outputs).forEach(k => this.outputs[k] = network.outputs[k]);
       }
@@ -389,8 +432,10 @@ class NeuralNetwork extends EventEmitter {
       }
       this.nodes.forEach((neuron, i) => {
         if (i >= begining && i <= end) {
-          const n = Neuron.generate(i, this.size, () => Random.integer(offset, offset + range), this.opts);
-          neuron.synapses.push(...n.synapses.map(s => Object.assign(s, { target: this.nodes[s.t] })));
+          // Generate additional connections
+          const synapses = this.createSynapses(i, () => Random.integer(offset, offset+range));
+          this.synapses.push(...synapses);
+          neuron.synapses.push(...synapses);
         }
       });
     }
@@ -408,7 +453,7 @@ class NeuralNetwork extends EventEmitter {
     let active = 0;
     for (let i = 0; i < synapses.length; i++) {
       const s = synapses[i];
-      if (s.w > this.opts.signalFireThreshold) {
+      if (s.weight > this.opts.signalFireThreshold) {
         active++;
       }
     }
@@ -420,73 +465,30 @@ class NeuralNetwork extends EventEmitter {
     const synapses = this.synapses;
     let weight = 0;
     for (let i = 0; i < synapses.length; i++) {
-      weight += synapses[i].w;
+      weight += synapses[i].weight;
     }
     return weight / synapses.length;
   }
 
-  /** Array of synapses */
-  get synapses() {
-    const result = [];
-    for (let i = 0; i < this.nodes.length; i++) {
-      result.push(...this.nodes[i].synapses);
-    }
-    return result;
-  }
-
   /** Network signature - used to detect changes */
   get hash() {
-    return Math.floor(this.synapses.reduce((acc, s, i) => acc + s.w * (i << 10), 0)); 
+    return Math.floor(this.synapses.reduce((hash, s, i) => hash + s.weight * (i << 10), 0)); 
   }
 }
 
 class Neuron extends EventEmitter {
 
-  constructor(index, synapses, opts) {
-    super();
-    this.synapses = synapses || [];
-    this.id = index > -1 ? index : Random.alpha(6);
-    this.potential = 0;
-    this.opts = opts || DEFAULTS;
-  }
-
   /**
    * Generates a neuron
    * @param {int} index position of neuron in network
-   * @param {int} size network size (total neurons)
-   * @param {Function} shaper function used for shaping onward connections
    * @param {Object} opts network options
    */
-  static generate(index, size, shaper, opts) {
-    // Number of synapses are random based on average
-    const synapses = new Array(Random.integer(1, opts.connectionsPerNeuron * 2 - 1))
-      .fill()
-      .map((s, i) => {
-        // target is defined by shaper function
-        const t = shaper(index, size, i),
-          // initial weight is at threshold
-          w = opts.signalFireThreshold;
-
-        if (t && t < size) {
-          // index, weight, long term weight
-          return { t, w, ltw: w }; 
-        }
-        // Cannot find suitable target
-        return null;
-      })
-      .filter(s => !!s);
-    return new Neuron(index, synapses, opts);
-  }
-
-  /**
-   * Shifts a neuron, useful when concatenating networks
-   * @param {int} offset number used to offset neuron id by 
-   */
-  shift(offset) {
-    offset = offset || 0;
-    this.id += offset;
-    this.synapses.forEach(s => s.t += offset);
-    return this;
+  constructor(index, opts) {
+    super();
+    this.synapses = [];
+    this.id = index > -1 ? index : Random.alpha(6);
+    this.potential = 0;
+    this.opts = opts || DEFAULTS;
   }
 
   /** Should be optimised as this gets executed very frequently. */ 
@@ -508,10 +510,10 @@ class Neuron extends EventEmitter {
         let i = this.synapses.length;
         while(i--) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.w + this.potential) / 2).isfiring) {
+          if (s && s.target && s.target.fire((s.weight + this.potential) / 2).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
-            s.l = new Date().getTime();
+            s.fired = new Date().getTime();
           }
         }
       }, signalFireDelay);

@@ -66,7 +66,7 @@
     <section id="closeup" v-show="closeup.display">
       <div><label>Neuron # {{closeup.neuron}}</label> <span v-on:click="closeup.display = false">x</span></div>
       <ul>
-        <li v-for="(synapse, i) in closeup.synapses">{{i}}: => # {{synapse.t}} ({{synapse.w.toFixed(2)}})</li>
+        <li v-for="(synapse, i) in closeup.synapses">{{i}}: => # {{synapse.target}} ({{synapse.weight.toFixed(2)}})</li>
       </ul>
     </section>
     <section id="info">
@@ -118,8 +118,8 @@
         outputs: '-',
         closeup: {
           display: false,
-          neuron: 56,
-          synapses: [{ t: 67, w: 0.342523}, {t: 59, w: -0.13199}]
+          neuron: 0,
+          synapses: [{ target: 0, weight: 0}]
         }
       },
       methods: {},
@@ -130,13 +130,13 @@
             network = new botbrain.NeuralNetwork(data); 
             this.signalRecovery = 5000 / network.opts.signalSpeed;
             this.updateNetwork();
-            this.visualise();
+            this.visualise(data);
           }
           window.addEventListener('resize', () => location.href = location.href);
           window.onbeforeunload = function() { socket.disconnect(); };
         });
 
-        socket.on('fire', id => this.fire(id));
+        socket.on('fire', (id, p) => this.fire(id, p));
         socket.on('stats', stats => this.updateStats(stats));
         socket.on('update', data => {
           console.log('update', data);
@@ -150,15 +150,15 @@
       }
     });
 
-    UI.visualise = function() {
+    UI.visualise = function(data) {
 
-      let inputs = Object.keys(network.inputs).reduce((acc, k) => acc.concat(network.inputs[k]), []);
-      let inputLabels = network.nodes.map(node => Object.keys(network.inputs).find(k => network.inputs[k].indexOf(node) > -1));
-      let outputs = Object.keys(network.outputs).reduce((acc, k) => acc.concat(network.outputs[k]), []);
-      let outputLabels = network.nodes.map(node => Object.keys(network.outputs).find(k => network.outputs[k].indexOf(node) > -1));
-      let nodes = network.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node) + 1 ? '#ff0000' : (inputs.indexOf(node) + 1 ? '#0000ff' : undefined) }));
-      let links = network.nodes.reduce((acc, n, i, arr) => acc.concat(n.synapses.filter(s => s.target).map(s => ({ source: n.id, target: s.target.id, opacity: s.w }))), []);
-      console.log({ network, inputs, outputs });
+      let inputs = Object.keys(data.inputs).reduce((arr, k) => arr.concat(data.inputs[k]), []);
+      let inputLabels = data.nodes.map(node => Object.keys(data.inputs).find(k => data.inputs[k].indexOf(node.id) > -1));
+      let outputs = Object.keys(data.outputs).reduce((arr, k) => arr.concat(data.outputs[k]), []);
+      let outputLabels = data.nodes.map(node => Object.keys(data.outputs).find(k => data.outputs[k].indexOf(node.id) > -1));
+      let nodes = data.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node.id) + 1 ? '#ff0000' : (inputs.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
+      let links = data.synapses.map((s => ({ source: s.s, target: s.t, opacity: s.weight })));
+      console.log({ data, inputLabels, outputLabels });
       
       const Graph = new ForceGraph3D(document.getElementById('graph'), {
         warmupTicks: 120,
@@ -184,8 +184,8 @@
           let lines = graphData.links.map(l => l.__line);
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
-            lines[i].material.opacity = Math.abs(s.w);
-            lines[i].material.color.setHex(s.w > 0 ? lineColor : lineColorNeg);
+            lines[i].material.opacity = Math.abs(s.weight);
+            lines[i].material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
           });
         }
         // Update measurements
@@ -205,7 +205,8 @@
       }
     }
 
-    UI.fire = function(id) {
+    UI.fire = function(id, p) {
+      //console.log('Firing ' + id + ' with potential ' + p);
       const node = graphData && graphData.nodes && graphData.nodes[id];
       if (node && node.__sphere) {
         let material = node.__sphere.material;
@@ -227,7 +228,7 @@
         clearTimeout(this.closeup.timeoutId); 
         this.closeup = {
           neuron: node.id,
-          synapses: synapses.map(s => Object({t: s.t, w: s.w}))
+          synapses: synapses.map(s => Object({target: network.nodes.indexOf(s.target), weight: s.weight}))
         };
         this.closeup.display = true;
         this.closeup.timeoutId = setTimeout(() => {
