@@ -6,19 +6,19 @@ class NetworkShaper {
 
   // Random ball shape
   // (neurons linked at random)
-  static ball (size, neuron) {
+  static ball (size, index) {
     var target = Random.integer(0, size - 1);
-    if (target !== neuron) {
+    if (target !== index) {
       return target;
     }
     return undefined;
   }
 
   // Tube shape
-  static tube (size, neuron) {
+  static tube (size, index) {
     const width = size / 4;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
+    const target = index + forwardBias;
     if (target < size) {
       return target; 
     }
@@ -26,11 +26,11 @@ class NetworkShaper {
   }
 
   // Classic layered shape (depends on connections per neuron)
-  static classic (size, neuron, synapse, connectionsPerNeuron) {
+  static classic (size, index, synapseIndex, connectionsPerNeuron) {
     const layers = Math.ceil(size / connectionsPerNeuron);
     const offset = Math.floor(size / layers);
-    const layer = Math.floor((neuron / size) * layers) + 1;
-    const target = offset * layer + synapse;
+    const layer = Math.floor((index / size) * layers) + 1;
+    const target = offset * layer + synapseIndex;
     if (target < size) {
       return target;
     }
@@ -38,10 +38,10 @@ class NetworkShaper {
   }
 
   // Snake shape
-  static snake (size, neuron) {
+  static snake (size, index) {
     const width = size / 10;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
+    const target = index + forwardBias;
     if (target < size) {
       return target;
     }
@@ -49,25 +49,25 @@ class NetworkShaper {
   }
 
   // Forward-biased sausage shape
-  static sausage (size, neuron) {
+  static sausage (size, index) {
     const width = size / 4;
     const forwardBias = Math.ceil(width * Math.random());
-    let target = neuron + forwardBias;
+    let target = index + forwardBias;
     if (target < size) {
       return target;
     }
     target = Random.integer(0, size - 1);
-    if (target !== neuron) {
+    if (target !== index) {
       return target;
     }
     return undefined;
   }
 
   // Ring shape
-  static ring (size, neuron) {
+  static ring (size, index) {
     const width = size / 12;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
+    const target = index + forwardBias;
     if (target < size) {
       return target;
     }

@@ -138,7 +138,7 @@ let network = new NeuralNetwork(100, 'ring');
 If a `Function` is passed as the `opts` parameter, its interpreted as the [shaper function](#shaper-function), see examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 ```js
-let network = new NeuralNetwork(100, (neuron, size) => Math.floor(Math.random() * size));
+let network = new NeuralNetwork(100, (size, index) => Math.floor(Math.random() * size));
 ```
 
 ### network.input(label [, neurons=1])
@@ -231,9 +231,10 @@ The shaper function is executed *once for every synapse in the network*. If ther
 
 A shaper function has three inputs: 
 
-- **`neuron`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a value of `9` means the last neuron in the network.
 - **`size`**: The total number of nodes in the network. In other words, in a network of 10 neurons, this will be `10`. Useful for linking up the end of the network back to its beginning or for discarding links outside the network.
-- **`synapse`**: A neuron has several synapses originating from it. The `synapse` determines which synapse is currently being linked. In other words, if there are 4 synapses in the originating `neuron`, the shaper function will execute 4 times for it, with a `synapse` value of `0` to `3` accordingly.
+- **`index`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a value of `9` means the last neuron in the network.
+- **`synapseIndex`**: A neuron has several synapses originating from it. The `synapseIndex` is the array location of the synapse currently being linked. In other words, if there are 4 synapses in the originating neuron, the shaper function will execute 4 times for it, with a `synapseIndex` value of `0` to `3` accordingly.
+- **`connectionsPerNeuron`**: The connection count in the originating neuron. For example if there are 4 connections, this will be 4.
 
 And returns:
 
@@ -245,7 +246,7 @@ Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-new NeuralNetwork(100, (neuron, size, synapse) => Math.floor(Math.random() * size));
+new NeuralNetwork(100, (size, index) => Math.floor(Math.random() * size));
 ```
 
 Another more involved example:
@@ -254,7 +255,7 @@ Another more involved example:
 // Ring shape
 const network = new NeuralNetwork(100, ring);
 
-function ring(neuron, size, synapse) {
+function ring(size, index) {
   const thickness = Math.ceil(size / 20);
   const offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
   for (var tries = 0; tries < 3; tries++) {

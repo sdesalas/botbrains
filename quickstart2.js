@@ -17,8 +17,6 @@ const mesh1 = network2.join(network, 0.5);
 const mesh2 = network3.join(mesh1, 0.76);
 mesh2.join(mesh2);
 
-mesh1.learn();
-
 //botbrain.Toolkit.verbose = true;
 botbrain.Toolkit.visualise(mesh2);
 
