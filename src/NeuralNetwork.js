@@ -7,7 +7,7 @@ const Utils = require('./Utils');
 
 const DEFAULTS = {
   shape: 'tube',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 6,    // average synapses per neuron
+  connectionsPerNeuron: 12,    // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
@@ -101,9 +101,9 @@ class NeuralNetwork extends EventEmitter {
     for (let s = 0; s < count; s++) {
       const source = this.nodes[i],
         // target is defined by shaper function
-        target = this.nodes[shaperFn(this.size, i, s, count)],
+        target = this.nodes[shaperFn(this.size, i, count, s)],
         // initial weight is at threshold
-        weight = this.opts.signalFireThreshold * 0.6;
+        weight = this.opts.signalFireThreshold * (3 / count);
       
       if (source && target) {
         synapses.push({ source, target, weight, ltw: weight }); 

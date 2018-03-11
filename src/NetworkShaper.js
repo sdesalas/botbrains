@@ -6,8 +6,8 @@ class NetworkShaper {
 
   // Random ball shape
   // (neurons linked at random)
-  static ball (size, index) {
-    var target = Random.integer(0, size - 1);
+  static ball (count, index) {
+    var target = Random.integer(0, count - 1);
     if (target !== index) {
       return target;
     }
@@ -15,48 +15,48 @@ class NetworkShaper {
   }
 
   // Tube shape
-  static tube (size, index) {
-    const width = size / 4;
+  static tube (count, index) {
+    const width = count / 4;
     const forwardBias = Math.ceil(width * Math.random());
     const target = index + forwardBias;
-    if (target < size) {
+    if (target < count) {
       return target; 
     }
     return undefined;
   }
 
-  // Classic layered shape (depends on connections per neuron)
-  static classic (size, index, synapseIndex, connectionsPerNeuron) {
-    const layers = Math.ceil(size / connectionsPerNeuron);
-    const offset = Math.floor(size / layers);
-    const layer = Math.floor((index / size) * layers) + 1;
-    const target = offset * layer + synapseIndex;
-    if (target < size) {
+  // Classic shape (number of layers depends on connections per neuron)
+  static classic (count, index, connectionCount, connectionIndex) {
+    const layers = Math.ceil(count / connectionCount);
+    const offset = Math.floor(count / layers);
+    const layer = Math.floor((index / count) * layers) + 1;
+    const target = offset * layer + connectionIndex;
+    if (target < count) {
       return target;
     }
     return undefined;
   }
 
   // Snake shape
-  static snake (size, index) {
-    const width = size / 10;
+  static snake (count, index) {
+    const width = count / 10;
     const forwardBias = Math.ceil(width * Math.random());
     const target = index + forwardBias;
-    if (target < size) {
+    if (target < count) {
       return target;
     }
     return undefined;
   }
 
   // Forward-biased sausage shape
-  static sausage (size, index) {
-    const width = size / 4;
+  static sausage (count, index) {
+    const width = count / 4;
     const forwardBias = Math.ceil(width * Math.random());
     let target = index + forwardBias;
-    if (target < size) {
+    if (target < count) {
       return target;
     }
-    target = Random.integer(0, size - 1);
+    target = Random.integer(0, count - 1);
     if (target !== index) {
       return target;
     }
@@ -64,14 +64,14 @@ class NetworkShaper {
   }
 
   // Ring shape
-  static ring (size, index) {
-    const width = size / 12;
+  static ring (count, index) {
+    const width = count / 12;
     const forwardBias = Math.ceil(width * Math.random());
     const target = index + forwardBias;
-    if (target < size) {
+    if (target < count) {
       return target;
     }
-    return target - size; // link to beginning
+    return target - count; // link to beginning
   }
 }
 

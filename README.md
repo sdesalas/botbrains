@@ -138,7 +138,7 @@ let network = new NeuralNetwork(100, 'ring');
 If a `Function` is passed as the `opts` parameter, its interpreted as the [shaper function](#shaper-function), see examples in [NetworkShaper.js](src/NetworkShaper.js).
 
 ```js
-let network = new NeuralNetwork(100, (size, index) => Math.floor(Math.random() * size));
+let network = new NeuralNetwork(100, (count) => Math.floor(Math.random() * count));
 ```
 
 ### network.input(label [, neurons=1])
@@ -229,24 +229,25 @@ The shaper function is executed *once for every synapse in the network*. If ther
 
 ![shaper.png](shaper.png)
 
-A shaper function has three inputs: 
+A shaper function has the following inputs: 
 
-- **`size`**: The total number of nodes in the network. In other words, in a network of 10 neurons, this will be `10`. Useful for linking up the end of the network back to its beginning or for discarding links outside the network.
+- **`count`**: The total number of nodes in the network. In other words, in a network of 10 neurons, this will be `10`. Useful for linking up the end of the network back to its beginning or for discarding links outside the network.
 - **`index`**: The position of the originating neuron inside the `nodes` array. In a network of 10 nodes, the first node is `0`, the last node is `9`, so a value of `9` means the last neuron in the network.
-- **`synapseIndex`**: A neuron has several synapses originating from it. The `synapseIndex` is the array location of the synapse currently being linked. In other words, if there are 4 synapses in the originating neuron, the shaper function will execute 4 times for it, with a `synapseIndex` value of `0` to `3` accordingly.
-- **`connectionsPerNeuron`**: The connection count in the originating neuron. For example if there are 4 connections, this will be 4.
+- **`connectionCount`**: A neuron has several connections (synapses) originating from it. For example if the neuron has 4 connections, this will be 4.
+- **`connectionIndex`**: The position in the array of the connection currently being made. In other words, if there are 4 connections (synapses) in the originating neuron, the shaper function will execute 4 times for it, with a `connectionIndex` value of `0` to `3` accordingly.
+
 
 And returns:
 
- - **`target`**: The destination position of an onward neuron (for connecting to it). In a network of 10 nodes, when we are mapping a `neuron` at `0` (the first node) and synapse `0` (the first synapse), a `target` of `9` means that synapse will be linking to the last neuron.
+ - **`target`**: The destination position of an onward neuron (for connecting to it). In a network of 10 nodes, when we are mapping a neuron `index` of `0` (the first node) and `connectionIndex` of `0` (the first synapse), a `target` of `9` means that connection is made towards the last neuron.
 
-Bear in mind that since the shaper function will be executed *multiple times per neuron* to determine the onward neuron for each synapse, you will want these to connect to different onward neurons. This can be done either choosing an onward `target` at random, or by using the `synapse` argument to calculate the `target` neuron in a deterministic manner.
+Bear in mind that since the shaper function will be executed *multiple times per neuron* to determine the onward neuron for each connection. You will want these to connect to different onward neurons. This can be done either choosing an onward `target` at random, or by using the `synapseIndex` argument to calculate the `target` neuron in a deterministic manner.
 
 Here is an example of simple shaper function:
 
 ```js
 // Random ball shape
-new NeuralNetwork(100, (size, index) => Math.floor(Math.random() * size));
+new NeuralNetwork(100, (count, index) => Math.floor(Math.random() * count));
 ```
 
 Another more involved example:
@@ -255,25 +256,14 @@ Another more involved example:
 // Ring shape
 const network = new NeuralNetwork(100, ring);
 
-function ring(size, index) {
-  const thickness = Math.ceil(size / 20);
-  const offset = neuron + Math.floor(thickness / 2); // Point synapses in onward direction
-  for (var tries = 0; tries < 3; tries++) {
-    const from = -1 * thickness + offset;
-    const to = thickness + offset;
-    const target = Random.integer(from, to);
-    if (target >= size) {
-      return target - size; // Link to beginning
-    }
-    if (target < 0) {
-      return size + target; // Link to end
-    }
-    if (target !== neuron) {
-      return target; // All good? Return it
-    }
+function ring(count, index) {
+  const width = count / 12;
+  const forwardBias = Math.ceil(width * Math.random());
+  const target = index + forwardBias;
+  if (target < count) {
+    return target;
   }
-  // No luck? Reject it
-  return undefined;
+  return target - count; // link to beginning
 }
 ```
 
