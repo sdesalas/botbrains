@@ -434,11 +434,7 @@ class Utils {
 
   // Constrains a number between two others
   static constrain(n, from, to) {
-    if (!isNaN(n)) {
-      n = n < from ? from : n;
-      n = n > to ? to : n;
-    }
-    return n;
+    return n > to ? to : (n < from ? from : n);
   }
 
 }
@@ -500,9 +496,12 @@ class NeuralNetwork extends events {
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
-      neuron.on('fire', (i, p, by) => this.emit('fire', i, p, by));
-      // Add synapse ref pointers
-      neuron.synapses = this.synapses.filter(s => s.source === neuron);
+      neuron.on('fire', (i, p, b) => this.emit('fire', i, p, b));
+      neuron.synapses.forEach(s => {
+        s.target = this.nodes[s.target];
+        s.source = this.nodes[s.source];
+      });
+      this.synapses.push(...neuron.synapses);
     });
   }
 
@@ -529,27 +528,7 @@ class NeuralNetwork extends events {
     }
     // Initialize nodes and synapses
     this.nodes = new Array(size).fill()
-      .map((n, i) => new Neuron(i, this.opts));
-    this.synapses = new Array(size).fill()
-      .reduce((synapses, n, i) => synapses.concat(this.createSynapses(i, this.shaper)), []);
-  }
-
-  /** Generate synapses for a neuron using shaper function */
-  createSynapses(i, shaperFn) {
-    const synapses = [];
-    const count = this.opts.connectionsPerNeuron;
-    for (let s = 0; s < count; s++) {
-      const source = this.nodes[i],
-        // target is defined by shaper function
-        target = this.nodes[shaperFn(this.size, i, count, s)],
-        // the more connections per neuron, the lower the weight per connection
-        weight = this.opts.signalFireThreshold / count;
-      
-      if (source && target) {
-        synapses.push({ source, target, weight, ltw: weight }); 
-      }
-    }
-    return synapses;
+      .map((n, i) => Neuron.generate(size, i, this.opts, this.shaper));
   }
 
   /**
@@ -558,8 +537,12 @@ class NeuralNetwork extends events {
    */
   import(network) {
     this.init(network.opts);
-    this.nodes = network.nodes.map(n => new Neuron(n.id, network.opts));
-    this.synapses = network.synapses.map(s => ({ source: this.nodes[s.s], target: this.nodes[s.t], weight: s.w, ltw: s.w }));
+    this.nodes = network.nodes.map(n => {
+      const synapses = network.synapses
+        .filter(s => s.s === n.id)
+        .map(s => ({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
+      return new Neuron(n.id, network.opts, synapses);
+    });
     Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(id => this.nodes[id]));
     Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(id => this.nodes[id]));
   }
@@ -636,8 +619,9 @@ class NeuralNetwork extends events {
           reuse.push(s);
         }
       }
+      const gain = -1 * diff/reuse.length;
       for (let i = 0; i < reuse.length; i++) {
-        reuse[i].weight = Utils_1.constrain(reuse[i].weight - diff/reuse.length, -0.5, 1);
+        reuse[i].weight = Utils_1.constrain(reuse[i].weight + gain, -0.5, 1);
       }
     }
     return this;
@@ -665,19 +649,19 @@ class NeuralNetwork extends events {
   decay(rate) {
     const opts = this.opts;
     const tendency = (this.strength + opts.learningRate) / 2;
-    const stableLevel = opts.signalFireThreshold / 2;
-    let decay = 0;
+    const stableLevel = opts.signalFireThreshold / opts.connectionsPerNeuron;
+    let total = 0;
     for (let i = 0; i < this.synapses.length; i++) {
       const s = this.synapses[i];
       // short term weight decays fast towards the average of long term and stable levels
       const target = (s.ltw + stableLevel) / 2;
-      const loss = (s.weight - target) * Math.abs(rate) * tendency;
-      s.weight = s.weight - loss;
+      const decay = (s.weight - target) * Math.abs(rate) * tendency;
+      s.weight = s.weight - decay;
       // long term weight shifts depending on retention rate
       s.ltw = s.weight * opts.retentionRate + s.ltw * (1-opts.retentionRate);
-      decay += loss;
+      total += decay;
     }
-    return decay;
+    return total;
   }
 
   /**
@@ -699,11 +683,7 @@ class NeuralNetwork extends events {
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
-        if (s.weight + potentiation > 1) {
-          potentiation = 1 - s.weight;
-        } else if (s.weight + potentiation < -0.5) {
-          potentiation = -0.5 - s.weight;
-        }
+        potentiation = Utils_1.constrain(potentiation, -0.5, 1);
         s.weight += potentiation;
         total += potentiation;
       }
@@ -854,7 +834,7 @@ class NeuralNetwork extends events {
         network = network instanceof NeuralNetwork ? network.clone() : new NeuralNetwork(network);
         network.nodes.forEach(n => {
           n.id += this.size; // shift ids past the end
-          n.on('fire', (i, p) => this.emit('fire', i, p));
+          n.on('fire', (i, p, b) => this.emit('fire', i, p, b));
         });
         this.nodes.push(...network.nodes.splice(0));
         this.synapses.push(...network.synapses.splice(0));
@@ -873,9 +853,13 @@ class NeuralNetwork extends events {
       this.nodes.forEach((neuron, i) => {
         if (i >= begining && i <= end) {
           // Generate additional connections
-          const synapses = this.createSynapses(i, () => Random_1.integer(offset, offset+range));
-          this.synapses.push(...synapses);
+          const synapses = Neuron.generate(this.nodes.length, i, this.opts, () => Random_1.integer(offset, offset+range)).synapses;
+          synapses.forEach(s => {
+            s.source = this.nodes[s.source];
+            s.target = this.nodes[s.target];
+          });
           neuron.synapses.push(...synapses);
+          this.synapses.push(...synapses);
         }
       });
     }
@@ -918,17 +902,35 @@ class NeuralNetwork extends events {
 
 class Neuron extends events {
 
-  /**
-   * Generates a neuron
-   * @param {int} index position of neuron in network
-   * @param {Object} opts network options
-   */
-  constructor(index, opts) {
+  constructor(id, opts, synapses = []) {
     super();
-    this.synapses = [];
-    this.id = index > -1 ? index : Random_1.alpha(6);
+    this.synapses = synapses;
+    this.id = id > -1 ? id : Random_1.alpha(6);
     this.potential = 0;
     this.opts = opts || DEFAULTS;
+  }
+
+  /**
+   * Generates a neuron
+   * @param {int} size the size of the network 
+   * @param {int} index position of neuron in network
+   * @param {Object} opts network options
+   * @param {Function} shaperFn the shaper function
+   */
+  static generate(size, index, opts, shaperFn) {
+    const count = opts.connectionsPerNeuron;
+    const neuron = new Neuron(index, opts);
+    for (let s = 0; s < count; s++) {
+      // target is defined by shaper function
+      const target = shaperFn(size, index, count, s),
+        // the more connections per neuron, the lower the weight per connection
+        weight = opts.signalFireThreshold / count;
+      
+      if (target >= 0) {
+        neuron.synapses.push({ source: index, target, weight, ltw: weight }); 
+      }
+    }
+    return neuron;
   }
 
   /** Should be optimised as this gets executed very frequently. */ 

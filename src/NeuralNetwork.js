@@ -65,6 +65,7 @@ class NeuralNetwork extends EventEmitter {
         s.target = this.nodes[s.target];
         s.source = this.nodes[s.source];
       });
+      this.synapses.push(...neuron.synapses);
     });
   }
 
@@ -91,11 +92,7 @@ class NeuralNetwork extends EventEmitter {
     }
     // Initialize nodes and synapses
     this.nodes = new Array(size).fill()
-      .map((n, i) => {
-        const neuron = Neuron.generate(size, i, this.opts, this.shaper);
-        this.synapses.push(...neuron.synapses);
-        return neuron;
-      });
+      .map((n, i) => Neuron.generate(size, i, this.opts, this.shaper));
   }
 
   /**
@@ -104,8 +101,12 @@ class NeuralNetwork extends EventEmitter {
    */
   import(network) {
     this.init(network.opts);
-    this.nodes = network.nodes.map(n => new Neuron(n.id, network.opts));
-    this.synapses = network.synapses.map(s => ({ source: this.nodes[s.s], target: this.nodes[s.t], weight: s.w, ltw: s.w }));
+    this.nodes = network.nodes.map(n => {
+      const synapses = network.synapses
+        .filter(s => s.s === n.id)
+        .map(s => ({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
+      return new Neuron(n.id, network.opts, synapses);
+    });
     Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(id => this.nodes[id]));
     Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(id => this.nodes[id]));
   }
@@ -416,8 +417,13 @@ class NeuralNetwork extends EventEmitter {
       this.nodes.forEach((neuron, i) => {
         if (i >= begining && i <= end) {
           // Generate additional connections
-          const neuron = Neuron.generate(this.nodes.length, i, this.opts, () => Random.integer(offset, offset+range));
-          this.synapses.push(...neuron.synapses);
+          const synapses = Neuron.generate(this.nodes.length, i, this.opts, () => Random.integer(offset, offset+range)).synapses;
+          synapses.forEach(s => {
+            s.source = this.nodes[s.source];
+            s.target = this.nodes[s.target];
+          });
+          neuron.synapses.push(...synapses);
+          this.synapses.push(...synapses);
         }
       });
     }
@@ -460,10 +466,9 @@ class NeuralNetwork extends EventEmitter {
 
 class Neuron extends EventEmitter {
 
-
-  constructor(id, opts) {
+  constructor(id, opts, synapses = []) {
     super();
-    this.synapses = [];
+    this.synapses = synapses;
     this.id = id > -1 ? id : Random.alpha(6);
     this.potential = 0;
     this.opts = opts || DEFAULTS;
