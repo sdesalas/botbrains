@@ -90,18 +90,20 @@ class NeuralNetwork extends EventEmitter {
     // Initialize nodes and synapses
     this.nodes = new Array(size).fill()
       .map((n, i) => new Neuron(i, this.opts));
-    this.synapses = new Array(size).fill()
-      .reduce((synapses, n, i) => synapses.concat(this.createSynapses(i, this.shaper)), []);
+    for (let i = 0; i < size; i++) {
+      this.synapses.push(...this.createSynapses(i, this.shaper));
+    }
+
   }
 
   /** Generate synapses for a neuron using shaper function */
   createSynapses(i, shaperFn) {
     const synapses = [];
     const count = this.opts.connectionsPerNeuron;
+    const source = this.nodes[i];
     for (let s = 0; s < count; s++) {
-      const source = this.nodes[i],
-        // target is defined by shaper function
-        target = this.nodes[shaperFn(this.size, i, count, s)],
+      // target is defined by shaper function
+      const target = this.nodes[shaperFn(this.size, i, count, s)],
         // the more connections per neuron, the lower the weight per connection
         weight = this.opts.signalFireThreshold / count;
       
@@ -196,8 +198,9 @@ class NeuralNetwork extends EventEmitter {
           reuse.push(s);
         }
       }
+      const gain = -1 * diff/reuse.length;
       for (let i = 0; i < reuse.length; i++) {
-        reuse[i].weight = Utils.constrain(reuse[i].weight - diff/reuse.length, -0.5, 1);
+        reuse[i].weight = Utils.constrain(reuse[i].weight + gain, -0.5, 1);
       }
     }
     return this;
@@ -225,19 +228,19 @@ class NeuralNetwork extends EventEmitter {
   decay(rate) {
     const opts = this.opts;
     const tendency = (this.strength + opts.learningRate) / 2;
-    const stableLevel = opts.signalFireThreshold / 2;
-    let decay = 0;
+    const stableLevel = opts.signalFireThreshold / opts.connectionsPerNeuron;
+    let total = 0;
     for (let i = 0; i < this.synapses.length; i++) {
       const s = this.synapses[i];
       // short term weight decays fast towards the average of long term and stable levels
       const target = (s.ltw + stableLevel) / 2;
-      const loss = (s.weight - target) * Math.abs(rate) * tendency;
-      s.weight = s.weight - loss;
+      const decay = (s.weight - target) * Math.abs(rate) * tendency;
+      s.weight = s.weight - decay;
       // long term weight shifts depending on retention rate
       s.ltw = s.weight * opts.retentionRate + s.ltw * (1-opts.retentionRate);
-      decay += loss;
+      total += decay;
     }
-    return decay;
+    return total;
   }
 
   /**
@@ -259,11 +262,7 @@ class NeuralNetwork extends EventEmitter {
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
-        if (s.weight + potentiation > 1) {
-          potentiation = 1 - s.weight;
-        } else if (s.weight + potentiation < -0.5) {
-          potentiation = -0.5 - s.weight;
-        }
+        potentiation = Utils.constrain(potentiation, -0.5, 1);
         s.weight += potentiation;
         total += potentiation;
       }

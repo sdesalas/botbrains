@@ -17,11 +17,7 @@ class Utils {
 
   // Constrains a number between two others
   static constrain(n, from, to) {
-    if (!isNaN(n)) {
-      n = n < from ? from : n;
-      n = n > to ? to : n;
-    }
-    return n;
+    return n > to ? to : (n < from ? from : n);
   }
 
 }
