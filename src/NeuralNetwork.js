@@ -60,7 +60,7 @@ class NeuralNetwork extends EventEmitter {
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
-      neuron.on('fire', (i, p) => this.emit('fire', i, p));
+      neuron.on('fire', (i, p, by) => this.emit('fire', i, p, by));
       // Add synapse ref pointers
       neuron.synapses = this.synapses.filter(s => s.source === neuron);
     });
@@ -102,8 +102,8 @@ class NeuralNetwork extends EventEmitter {
       const source = this.nodes[i],
         // target is defined by shaper function
         target = this.nodes[shaperFn(this.size, i, count, s)],
-        // initial weight is at threshold
-        weight = this.opts.signalFireThreshold * (3 / count);
+        // the more connections per neuron, the lower the weight per connection
+        weight = this.opts.signalFireThreshold / count;
       
       if (source && target) {
         synapses.push({ source, target, weight, ltw: weight }); 
@@ -492,25 +492,29 @@ class Neuron extends EventEmitter {
   }
 
   /** Should be optimised as this gets executed very frequently. */ 
-  fire(potential) {
+  fire(potential, by) {
     if (this.isfiring) return false;
     const opts = this.opts;
     const signalFireDelay = 1000 / opts.signalSpeed;
     const signalRecovery = signalFireDelay * 10;
     // Action potential is accumulated so that
     // certain patterns can trigger even weak synapses.
+    // https://en.wikipedia.org/wiki/Excitatory_postsynaptic_potential
     potential = isNaN(potential) ? 1 : potential;
     this.potential += potential;
     // Should we fire onward connections?
     if (this.potential > opts.signalFireThreshold) {
       this.isfiring = true;
       this.timeout = setTimeout(() => {
-        this.emit('fire', this.id, potential);
+        this.emit('fire', this.id, this.potential, by);
         // Attempt firing onward connections
-        let i = this.synapses.length;
-        while(i--) {
+        for (let i = 0; i < this.synapses.length; i++) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.weight + this.potential) / 2).isfiring) {
+          // Firing strength depends on both connection weight AND incoming potential,
+          // it can also be inhibitory (if connection polarity is negative)
+          // https://en.wikipedia.org/wiki/Inhibitory_postsynaptic_potential
+          const firePotential = (s.weight < 0 ? -1 : 1) * (Math.abs(s.weight) + this.potential) / 2;
+          if (s && s.target && s.target.fire(firePotential, this.id).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
             s.fired = new Date().getTime();
@@ -525,9 +529,11 @@ class Neuron extends EventEmitter {
         this.isfiring = false;
         this.emit('ready', this.id);
       }, signalRecovery);
+    } else {
+      // Bring neuron potential back down after a small delay, 
+      // this allows potentials to become cummulative
+      setTimeout(() => this.potential -= potential, signalFireDelay * 1.5);
     }
-    // Bring neuron potential back down
-    setTimeout(() => this.potential -= potential, signalFireDelay);
     return this;
   }
 

@@ -136,7 +136,7 @@
           window.onbeforeunload = function() { socket.disconnect(); };
         });
 
-        socket.on('fire', (id, p) => this.fire(id, p));
+        socket.on('fire', (id, p, by) => this.fire(id, p, by));
         socket.on('stats', stats => this.updateStats(stats));
         socket.on('update', data => {
           console.log('update', data);
@@ -157,7 +157,7 @@
       let outputs = Object.keys(data.outputs).reduce((arr, k) => arr.concat(data.outputs[k]), []);
       let outputLabels = data.nodes.map(node => Object.keys(data.outputs).find(k => data.outputs[k].indexOf(node.id) > -1));
       let nodes = data.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node.id) + 1 ? '#ff0000' : (inputs.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
-      let links = data.synapses.map((s => ({ source: s.s, target: s.t, opacity: s.weight })));
+      let links = data.synapses.map((s => ({ source: s.s, target: s.t, opacity: s.w })));
       console.log({ data, inputLabels, outputLabels });
       
       const Graph = new ForceGraph3D(document.getElementById('graph'), {
@@ -205,8 +205,8 @@
       }
     }
 
-    UI.fire = function(id, p) {
-      //console.log('Firing ' + id + ' with potential ' + p);
+    UI.fire = function(id, p, by) {
+      //console.log('Firing ' + id + ' with potential ' + p + ' by ' + by);
       const node = graphData && graphData.nodes && graphData.nodes[id];
       if (node && node.__sphere) {
         let material = node.__sphere.material;
@@ -221,7 +221,7 @@
     };
 
     UI.focus = function(x) {
-      //console.log('UI.focus()', x);
+      console.log('UI.focus()', x);
       if (x && x.object && x.object instanceof THREE.Mesh) {
         var node = graphData.nodes.find(n => x.object === n.__sphere);
         var synapses = network.nodes[node.id].synapses;

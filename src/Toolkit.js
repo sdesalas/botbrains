@@ -13,7 +13,7 @@ class Toolkit {
   static visualise(network, port) {
     if (network) {
       this.network = network;
-      this.network.on('fire', (id, potential) => this.verbose && console.log(`Firing ${id} with potential ${potential}`));
+      this.network.on('fire', (id, potential, by) => this.verbose && console.log(`Firing ${id} with potential ${potential} by ${by}`));
       return this.serve(port || 8811);
     }
   }
@@ -40,12 +40,12 @@ class Toolkit {
     console.log(`connection. clients: ${++clientCount}`);
     socket.on('disconnect', () => console.log(`disconnect. clients: ${--clientCount}`));
     // Track neuron change reactions, using 'volatile' mode
-    this.network.on('fire', (id, p) => {
+    this.network.on('fire', (id, p, by) => {
       if (cpuLoad > 0.8) {
-        socket.volatile.emit('fire', id, p);
+        socket.volatile.emit('fire', id, p, by);
       }
       else {
-        socket.emit('fire', id, p);
+        socket.emit('fire', id, p, by);
       }
     });
     // Handle incoming events

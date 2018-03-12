@@ -345,72 +345,72 @@ class NetworkShaper {
 
   // Random ball shape
   // (neurons linked at random)
-  static ball (size, neuron) {
-    var target = Random_1.integer(0, size - 1);
-    if (target !== neuron) {
+  static ball (count, index) {
+    var target = Random_1.integer(0, count - 1);
+    if (target !== index) {
       return target;
     }
     return undefined;
   }
 
   // Tube shape
-  static tube (size, neuron) {
-    const width = size / 4;
+  static tube (count, index) {
+    const width = count / 4;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
-    if (target < size) {
+    const target = index + forwardBias;
+    if (target < count) {
       return target; 
     }
     return undefined;
   }
 
-  // Classic layered shape (depends on connections per neuron)
-  static classic (size, neuron, synapse, connectionsPerNeuron) {
-    const layers = Math.ceil(size / connectionsPerNeuron);
-    const offset = Math.floor(size / layers);
-    const layer = Math.floor((neuron / size) * layers) + 1;
-    const target = offset * layer + synapse;
-    if (target < size) {
+  // Classic shape (number of layers depends on connections per neuron)
+  static classic (count, index, connectionCount, connectionIndex) {
+    const layers = Math.ceil(count / connectionCount);
+    const offset = Math.floor(count / layers);
+    const layer = Math.floor((index / count) * layers) + 1;
+    const target = offset * layer + connectionIndex;
+    if (target < count) {
       return target;
     }
     return undefined;
   }
 
   // Snake shape
-  static snake (size, neuron) {
-    const width = size / 10;
+  static snake (count, index) {
+    const width = count / 10;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
-    if (target < size) {
+    const target = index + forwardBias;
+    if (target < count) {
       return target;
     }
     return undefined;
   }
 
   // Forward-biased sausage shape
-  static sausage (size, neuron) {
-    const width = size / 4;
+  static sausage (count, index) {
+    const width = count / 4;
     const forwardBias = Math.ceil(width * Math.random());
-    let target = neuron + forwardBias;
-    if (target < size) {
+    let target = index + forwardBias;
+    if (target < count) {
       return target;
     }
-    target = Random_1.integer(0, size - 1);
-    if (target !== neuron) {
+    target = Random_1.integer(0, count - 1);
+    if (target !== index) {
       return target;
     }
     return undefined;
   }
 
   // Ring shape
-  static ring (size, neuron) {
-    const width = size / 12;
+  static ring (count, index) {
+    const width = count / 12;
     const forwardBias = Math.ceil(width * Math.random());
-    const target = neuron + forwardBias;
-    if (target < size) {
+    const target = index + forwardBias;
+    if (target < count) {
       return target;
     }
-    return target - size; // link to beginning
+    return target - count; // link to beginning
   }
 }
 
@@ -447,7 +447,7 @@ var Utils_1 = Utils;
 
 const DEFAULTS = {
   shape: 'tube',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 6,    // average synapses per neuron
+  connectionsPerNeuron: 12,    // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
@@ -500,7 +500,7 @@ class NeuralNetwork extends events {
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
-      neuron.on('fire', (i, p) => this.emit('fire', i, p));
+      neuron.on('fire', (i, p, by) => this.emit('fire', i, p, by));
       // Add synapse ref pointers
       neuron.synapses = this.synapses.filter(s => s.source === neuron);
     });
@@ -541,9 +541,9 @@ class NeuralNetwork extends events {
     for (let s = 0; s < count; s++) {
       const source = this.nodes[i],
         // target is defined by shaper function
-        target = this.nodes[shaperFn(this.size, i, s, count)],
-        // initial weight is at threshold
-        weight = this.opts.signalFireThreshold * 0.6;
+        target = this.nodes[shaperFn(this.size, i, count, s)],
+        // the more connections per neuron, the lower the weight per connection
+        weight = this.opts.signalFireThreshold / count;
       
       if (source && target) {
         synapses.push({ source, target, weight, ltw: weight }); 
@@ -932,25 +932,29 @@ class Neuron extends events {
   }
 
   /** Should be optimised as this gets executed very frequently. */ 
-  fire(potential) {
+  fire(potential, by) {
     if (this.isfiring) return false;
     const opts = this.opts;
     const signalFireDelay = 1000 / opts.signalSpeed;
     const signalRecovery = signalFireDelay * 10;
     // Action potential is accumulated so that
     // certain patterns can trigger even weak synapses.
+    // https://en.wikipedia.org/wiki/Excitatory_postsynaptic_potential
     potential = isNaN(potential) ? 1 : potential;
     this.potential += potential;
     // Should we fire onward connections?
     if (this.potential > opts.signalFireThreshold) {
       this.isfiring = true;
       this.timeout = setTimeout(() => {
-        this.emit('fire', this.id, potential);
+        this.emit('fire', this.id, this.potential, by);
         // Attempt firing onward connections
-        let i = this.synapses.length;
-        while(i--) {
+        for (let i = 0; i < this.synapses.length; i++) {
           const s = this.synapses[i];
-          if (s && s.target && s.target.fire((s.weight + this.potential) / 2).isfiring) {
+          // Firing strength depends on both connection weight AND incoming potential,
+          // it can also be inhibitory (if connection polarity is negative)
+          // https://en.wikipedia.org/wiki/Inhibitory_postsynaptic_potential
+          const firePotential = (s.weight < 0 ? -1 : 1) * (Math.abs(s.weight) + this.potential) / 2;
+          if (s && s.target && s.target.fire(firePotential, this.id).isfiring) {
             // Time synapse last fired is important
             // to learn from recent past
             s.fired = new Date().getTime();
@@ -965,9 +969,11 @@ class Neuron extends events {
         this.isfiring = false;
         this.emit('ready', this.id);
       }, signalRecovery);
+    } else {
+      // Bring neuron potential back down after a small delay, 
+      // this allows potentials to become cummulative
+      setTimeout(() => this.potential -= potential, signalFireDelay * 1.5);
     }
-    // Bring neuron potential back down
-    setTimeout(() => this.potential -= potential, signalFireDelay);
     return this;
   }
 

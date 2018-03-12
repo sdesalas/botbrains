@@ -10,4 +10,4 @@ const input = network.input('INPUT', 3);
 botbrain.Toolkit.verbose = true;
 botbrain.Toolkit.visualise(network);
 
-setInterval(() => input(Math.random()), 3000);
+setInterval(() => input(Math.random()), 300);
