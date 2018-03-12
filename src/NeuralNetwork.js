@@ -60,9 +60,11 @@ class NeuralNetwork extends EventEmitter {
     }
     // Extra initialization per neuron
     this.nodes.forEach(neuron => {
-      neuron.on('fire', (i, p, by) => this.emit('fire', i, p, by));
-      // Add synapse ref pointers
-      neuron.synapses = this.synapses.filter(s => s.source === neuron);
+      neuron.on('fire', (i, p, b) => this.emit('fire', i, p, b));
+      neuron.synapses.forEach(s => {
+        s.target = this.nodes[s.target];
+        s.source = this.nodes[s.source];
+      });
     });
   }
 
@@ -89,29 +91,11 @@ class NeuralNetwork extends EventEmitter {
     }
     // Initialize nodes and synapses
     this.nodes = new Array(size).fill()
-      .map((n, i) => new Neuron(i, this.opts));
-    for (let i = 0; i < size; i++) {
-      this.synapses.push(...this.createSynapses(i, this.shaper));
-    }
-
-  }
-
-  /** Generate synapses for a neuron using shaper function */
-  createSynapses(i, shaperFn) {
-    const synapses = [];
-    const count = this.opts.connectionsPerNeuron;
-    const source = this.nodes[i];
-    for (let s = 0; s < count; s++) {
-      // target is defined by shaper function
-      const target = this.nodes[shaperFn(this.size, i, count, s)],
-        // the more connections per neuron, the lower the weight per connection
-        weight = this.opts.signalFireThreshold / count;
-      
-      if (source && target) {
-        synapses.push({ source, target, weight, ltw: weight }); 
-      }
-    }
-    return synapses;
+      .map((n, i) => {
+        const neuron = Neuron.generate(size, i, this.opts, this.shaper);
+        this.synapses.push(...neuron.synapses);
+        return neuron;
+      });
   }
 
   /**
@@ -413,7 +397,7 @@ class NeuralNetwork extends EventEmitter {
         network = network instanceof NeuralNetwork ? network.clone() : new NeuralNetwork(network);
         network.nodes.forEach(n => {
           n.id += this.size; // shift ids past the end
-          n.on('fire', (i, p) => this.emit('fire', i, p));
+          n.on('fire', (i, p, b) => this.emit('fire', i, p, b));
         });
         this.nodes.push(...network.nodes.splice(0));
         this.synapses.push(...network.synapses.splice(0));
@@ -432,9 +416,8 @@ class NeuralNetwork extends EventEmitter {
       this.nodes.forEach((neuron, i) => {
         if (i >= begining && i <= end) {
           // Generate additional connections
-          const synapses = this.createSynapses(i, () => Random.integer(offset, offset+range));
-          this.synapses.push(...synapses);
-          neuron.synapses.push(...synapses);
+          const neuron = Neuron.generate(this.nodes.length, i, this.opts, () => Random.integer(offset, offset+range));
+          this.synapses.push(...neuron.synapses);
         }
       });
     }
@@ -477,17 +460,36 @@ class NeuralNetwork extends EventEmitter {
 
 class Neuron extends EventEmitter {
 
-  /**
-   * Generates a neuron
-   * @param {int} index position of neuron in network
-   * @param {Object} opts network options
-   */
-  constructor(index, opts) {
+
+  constructor(id, opts) {
     super();
     this.synapses = [];
-    this.id = index > -1 ? index : Random.alpha(6);
+    this.id = id > -1 ? id : Random.alpha(6);
     this.potential = 0;
     this.opts = opts || DEFAULTS;
+  }
+
+  /**
+   * Generates a neuron
+   * @param {int} size the size of the network 
+   * @param {int} index position of neuron in network
+   * @param {Object} opts network options
+   * @param {Function} shaperFn the shaper function
+   */
+  static generate(size, index, opts, shaperFn) {
+    const count = opts.connectionsPerNeuron;
+    const neuron = new Neuron(index, opts);
+    for (let s = 0; s < count; s++) {
+      // target is defined by shaper function
+      const target = shaperFn(size, index, count, s),
+        // the more connections per neuron, the lower the weight per connection
+        weight = opts.signalFireThreshold / count;
+      
+      if (target >= 0) {
+        neuron.synapses.push({ source: index, target, weight, ltw: weight }); 
+      }
+    }
+    return neuron;
   }
 
   /** Should be optimised as this gets executed very frequently. */ 
