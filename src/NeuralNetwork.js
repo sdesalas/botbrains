@@ -280,7 +280,7 @@ class NeuralNetwork extends EventEmitter {
       // Find starting/ending point and add nodes to site
       const pos = isOutput ? 
         Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].map(n => n.id).concat(a)), this.size) - 2 :
-        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 1;
+        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 2;
       nodes = new Array(bits || 1)
         .fill()
         .map((b, i) => this.nodes[isOutput ? pos - i : pos + i]);
@@ -308,8 +308,8 @@ class NeuralNetwork extends EventEmitter {
      * ```
      * @param {float} data a number between 0 and 1
      */
-    return function(data) {
-      if (typeof data === 'number' && inputNodes && inputNodes.length) {
+    inputNodes.fn = inputNodes.fn || function(data) {
+      if (typeof data === 'number' && inputNodes.length) {
         // Distribute input signal across nodes
         const potential = Utils.constrain(data, 0, 1);
         for (let i = 0; i < inputNodes.length; i++) {
@@ -317,6 +317,7 @@ class NeuralNetwork extends EventEmitter {
         }
       }
     };
+    return inputNodes.fn;
   }
 
   /**
@@ -333,13 +334,16 @@ class NeuralNetwork extends EventEmitter {
   output(label, bits) {
     const observable = new EventEmitter();
     const outputNodes = this.outputs[label] || this.createSite(this.outputs, label, bits);
+    const count = outputNodes.length;
     this.on('fire', id => {
       const neuron = this.nodes[id];
       if (outputNodes.includes(neuron)) {
         const last = observable.lastValue;
         // Calculate average potential across all nodes
-        const potential = outputNodes
-          .reduce((pot, n) => pot + (n.isfiring ? n.potential/bits : 0), 0);
+        const potential = Utils.constrain(
+          outputNodes
+            .reduce((pot, n) => pot + (n.isfiring ? n.potential/count : 0), 0)
+          , 0, 1);
         observable.emit('data', potential);
         if (last !== potential) {
           const diff = (last - potential) || undefined;
