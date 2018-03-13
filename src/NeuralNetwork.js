@@ -6,8 +6,8 @@ const Random = require('./Random');
 const Utils = require('./Utils');
 
 const DEFAULTS = {
-  shape: 'tube',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 12,    // average synapses per neuron
+  shape: 'drum',              // shaper function name in NetworkShaper.js
+  connectionsPerNeuron: 12,   // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies

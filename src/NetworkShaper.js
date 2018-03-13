@@ -14,9 +14,20 @@ class NetworkShaper {
     return undefined;
   }
 
+  // Drum shape
+  static drum (count, index) {
+    const width = count / 3;
+    const forwardBias = Math.ceil(width * Math.random());
+    const target = index + forwardBias;
+    if (target < count) {
+      return target; 
+    }
+    return undefined;
+  }
+
   // Tube shape
   static tube (count, index) {
-    const width = count / 4;
+    const width = count / 5;
     const forwardBias = Math.ceil(width * Math.random());
     const target = index + forwardBias;
     if (target < count) {
