@@ -1,13 +1,13 @@
 const botbrain = require('./');
 
-const network = new botbrain.NeuralNetwork(80, 'tube');
+const network = new botbrain.NeuralNetwork(120, { shape: 'tube' });
 
 const output = network.output('OUTPUT', 3);
-const input = network.input('INPUT', [3,5,7,9]);
+const input = network.input('INPUT', 3);
 
 //network.join(network, 0.5, 0.5);
 
 botbrain.Toolkit.verbose = true;
 botbrain.Toolkit.visualise(network);
 
-setInterval(() => input(Math.random()), 200);
+setInterval(() => input(Math.random()), 300);

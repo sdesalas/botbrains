@@ -37,7 +37,7 @@
     "socket.io": "1.4.8"
   },
   "devDependencies": {
-    "3d-force-graph": "git+https://github.com/sdesalas/3d-force-graph.git",
+    "@sdesalas/3d-force-graph": "^2.0.2",
     "assert-fuzzy": "^1.0.0",
     "events": "^1.1.1",
     "mocha": "^3.4.2",

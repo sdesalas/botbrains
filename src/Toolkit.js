@@ -6,12 +6,14 @@ const io = require('socket.io');
 const osUtils = require('os-utils');
 const os = require('os');
 
+let cpuLoad = 0;
+
 class Toolkit {
 
   static visualise(network, port) {
     if (network) {
       this.network = network;
-      this.network.on('fire', (id, potential) => this.verbose && console.log(`Firing ${id} with potential ${potential}`));
+      this.network.on('fire', (id, potential, by) => this.verbose && console.log(`Firing ${id} with potential ${potential} by ${by}`));
       return this.serve(port || 8811);
     }
   }
@@ -38,7 +40,14 @@ class Toolkit {
     console.log(`connection. clients: ${++clientCount}`);
     socket.on('disconnect', () => console.log(`disconnect. clients: ${--clientCount}`));
     // Track neuron change reactions, using 'volatile' mode
-    this.network.on('fire', id => socket.volatile.emit('fire', id));
+    this.network.on('fire', (id, p, by) => {
+      if (cpuLoad > 0.8) {
+        socket.volatile.emit('fire', id, p, by);
+      }
+      else {
+        socket.emit('fire', id, p, by);
+      }
+    });
     // Handle incoming events
     ['learn', 'unlearn'].forEach(event => {
       socket.on(event, data => this.handle(socket, event, data));
@@ -52,17 +61,18 @@ class Toolkit {
   static handle(socket, event, data) {
     if (this.verbose) console.log(`Toolkit.handle(socket, ${event})`);
     switch(event) {
-    case 'learn':
-      this.network.learn();
-      return;
-    case 'unlearn':
-      this.network.unlearn();
-      return;
+      case 'learn':
+        this.network.learn();
+        return;
+      case 'unlearn':
+        this.network.unlearn();
+        return;
     }
   }
 
   static checkUpdate(socket, hash) {
     // Send event, but only if the network has changed
+    console.log(`Checking hash ${hash} vs lastHash ${this.lastHash} = ${(!this.lastHash || this.lastHash !== hash) ? 'UPDATE!!' : ''}`);
     if (!this.lastHash || this.lastHash !== hash) {
       this.lastHash = hash;
       socket.emit('update', this.network.export());
@@ -74,6 +84,7 @@ class Toolkit {
       const totalmem = os.totalmem();
       const usedmem = totalmem - os.freemem();
       const mem = usedmem/totalmem;
+      cpuLoad = cpu;
       callback({
         cpu: Number(cpu.toFixed(2)),
         mem: Number(mem.toFixed(2))
