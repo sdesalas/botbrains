@@ -353,9 +353,20 @@ class NetworkShaper {
     return undefined;
   }
 
+  // Drum shape
+  static drum (count, index) {
+    const width = count / 3;
+    const forwardBias = Math.ceil(width * Math.random());
+    const target = index + forwardBias;
+    if (target < count) {
+      return target; 
+    }
+    return undefined;
+  }
+
   // Tube shape
   static tube (count, index) {
-    const width = count / 4;
+    const width = count / 5;
     const forwardBias = Math.ceil(width * Math.random());
     const target = index + forwardBias;
     if (target < count) {
@@ -442,8 +453,8 @@ class Utils {
 var Utils_1 = Utils;
 
 const DEFAULTS = {
-  shape: 'tube',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 12,    // average synapses per neuron
+  shape: 'drum',              // shaper function name in NetworkShaper.js
+  connectionsPerNeuron: 12,   // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
@@ -716,7 +727,7 @@ class NeuralNetwork extends events {
       // Find starting/ending point and add nodes to site
       const pos = isOutput ? 
         Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].map(n => n.id).concat(a)), this.size) - 2 :
-        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 1;
+        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 2;
       nodes = new Array(bits || 1)
         .fill()
         .map((b, i) => this.nodes[isOutput ? pos - i : pos + i]);
@@ -744,8 +755,8 @@ class NeuralNetwork extends events {
      * ```
      * @param {float} data a number between 0 and 1
      */
-    return function(data) {
-      if (typeof data === 'number' && inputNodes && inputNodes.length) {
+    inputNodes.fn = inputNodes.fn || function(data) {
+      if (typeof data === 'number' && inputNodes.length) {
         // Distribute input signal across nodes
         const potential = Utils_1.constrain(data, 0, 1);
         for (let i = 0; i < inputNodes.length; i++) {
@@ -753,6 +764,7 @@ class NeuralNetwork extends events {
         }
       }
     };
+    return inputNodes.fn;
   }
 
   /**
@@ -769,13 +781,16 @@ class NeuralNetwork extends events {
   output(label, bits) {
     const observable = new events();
     const outputNodes = this.outputs[label] || this.createSite(this.outputs, label, bits);
+    const count = outputNodes.length;
     this.on('fire', id => {
       const neuron = this.nodes[id];
       if (outputNodes.includes(neuron)) {
         const last = observable.lastValue;
         // Calculate average potential across all nodes
-        const potential = outputNodes
-          .reduce((pot, n) => pot + (n.isfiring ? n.potential/bits : 0), 0);
+        const potential = Utils_1.constrain(
+          outputNodes
+            .reduce((pot, n) => pot + (n.isfiring ? n.potential/count : 0), 0)
+          , 0, 1);
         observable.emit('data', potential);
         if (last !== potential) {
           const diff = (last - potential) || undefined;
