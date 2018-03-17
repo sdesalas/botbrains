@@ -153,10 +153,10 @@
     UI.visualise = function(data) {
 
       let inputs = Object.keys(data.inputs).reduce((arr, k) => arr.concat(data.inputs[k]), []);
-      let inputLabels = data.nodes.map(node => Object.keys(data.inputs).find(k => data.inputs[k].indexOf(node.id) > -1));
+      let inputLabels = new Array(data.nodes).fill().map((n, id) => Object.keys(data.inputs).find(k => data.inputs[k].indexOf(id) > -1));
       let outputs = Object.keys(data.outputs).reduce((arr, k) => arr.concat(data.outputs[k]), []);
-      let outputLabels = data.nodes.map(node => Object.keys(data.outputs).find(k => data.outputs[k].indexOf(node.id) > -1));
-      let nodes = data.nodes.map(node => ({ id: node.id, name: `# ${node.id} ${inputLabels[node.id] || outputLabels[node.id] || ''}`, color: outputs.indexOf(node.id) + 1 ? '#ff0000' : (inputs.indexOf(node.id) + 1 ? '#0000ff' : undefined) }));
+      let outputLabels = new Array(data.nodes).fill().map((n, id) => Object.keys(data.outputs).find(k => data.outputs[k].indexOf(id) > -1));
+      let nodes = new Array(data.nodes).fill().map((n, id) => ({ id, name: `# ${id} ${inputLabels[id] || outputLabels[id] || ''}`, color: outputs.indexOf(id) + 1 ? '#ff0000' : (inputs.indexOf(id) + 1 ? '#0000ff' : undefined) }));
       let links = data.synapses.map((s => ({ source: s.s, target: s.t, opacity: s.w })));
       console.log({ data, inputLabels, outputLabels });
       
@@ -184,8 +184,10 @@
           let lines = graphData.links.map(l => l.__line);
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
-            lines[i].material.opacity = Math.abs(s.weight);
-            lines[i].material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
+            const line = lines[i];
+            line.material.opacity = Math.abs(s.weight);
+            line.material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
+            line.visible = Math.abs(s.weight) > 0.05;
           });
         }
         // Update measurements

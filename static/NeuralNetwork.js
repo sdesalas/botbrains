@@ -454,7 +454,7 @@ var Utils_1 = Utils;
 
 const DEFAULTS = {
   shape: 'drum',              // shaper function name in NetworkShaper.js
-  connectionsPerNeuron: 12,   // average synapses per neuron
+  connectionsPerNeuron: 16,   // average synapses per neuron
   signalSpeed: 20,            // neurons per second
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
@@ -548,12 +548,8 @@ class NeuralNetwork extends events {
    */
   import(network) {
     this.init(network.opts);
-    this.nodes = network.nodes.map(n => {
-      const synapses = network.synapses
-        .filter(s => s.s === n.id)
-        .map(s => ({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
-      return new Neuron(n.id, network.opts, synapses);
-    });
+    this.nodes = new Array(network.nodes).fill().map((n, i) => new Neuron(i, network.opts));
+    network.synapses.forEach(s => this.nodes[s.s].synapses.push({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
     Object.keys(network.inputs || {}).forEach(k => this.inputs[k] = network.inputs[k].map(id => this.nodes[id]));
     Object.keys(network.outputs || {}).forEach(k => this.outputs[k] = network.outputs[k].map(id => this.nodes[id]));
   }
@@ -566,14 +562,8 @@ class NeuralNetwork extends events {
     for(const k in this.inputs) { inputs[k] = this.inputs[k].map(n => n.id); }
     for(const k in this.outputs) { outputs[k] = this.outputs[k].map(n => n.id); }
     return {
-      nodes: this.nodes.map(node => ({ 
-        id: node.id
-      })),
-      synapses: this.synapses.map(s => ({ 
-        s: this.nodes.indexOf(s.source),
-        t: this.nodes.indexOf(s.target),
-        w: s.weight
-      })),
+      nodes: this.nodes.length,
+      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: s.weight })),
       opts: Object.assign({}, this.opts),
       inputs,
       outputs
