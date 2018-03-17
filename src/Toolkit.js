@@ -38,7 +38,6 @@ class Toolkit {
     // Track connected clients
     let clientCount = 0;
     console.log(`connection. clients: ${++clientCount}`);
-    socket.on('disconnect', () => console.log(`disconnect. clients: ${--clientCount}`));
     // Track neuron change reactions, using 'volatile' mode
     this.network.on('fire', (id, p, by) => {
       if (cpuLoad > 0.8) {
@@ -53,9 +52,14 @@ class Toolkit {
       socket.on(event, data => this.handle(socket, event, data));
     });
     // Polling to keep client updated of the state of the network
-    setInterval(() => this.getStats(stats => socket.emit('stats', stats)), 200);
-    setInterval(() => this.checkUpdate(socket, this.network.hash), 1000);
-    this.checkUpdate(socket, this.network.hash);
+    const statsInterval = setInterval(() => this.getStats(stats => socket.emit('stats', stats)), 200);
+    const updateInterval = setInterval(() => this.checkUpdate(socket, this.network.hash), 1000);
+    // Disconnect
+    socket.on('disconnect', () => {
+      console.log(`disconnect. clients: ${--clientCount}`);
+      clearInterval(statsInterval);
+      clearInterval(updateInterval);
+    });
   }
 
   static handle(socket, event, data) {

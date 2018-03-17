@@ -23,7 +23,11 @@
     "robot",
     "brain",
     "neural",
-    "network"
+    "network",
+    "nodebots",
+    "johnny-five",
+    "3d",
+    "webgl"
   ],
   "author": "Steven de Salas",
   "license": "GPL-3.0",

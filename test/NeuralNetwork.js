@@ -31,8 +31,8 @@ describe('NeuralNetwork', () => {
 
   it('.export()', () => {
     assert.equal(network.export() !== undefined, true);
-    assert.equal(network.export().nodes instanceof Array, true);
-    assert.equal(network.export().nodes.length, 100);
+    assert.equal(network.export().nodes, 100);
+    assert.equal(network.export().synapses instanceof Array, true);
   });
 
   it('.clone()', () => {
@@ -57,7 +57,7 @@ describe('NeuralNetwork', () => {
     beforeEach(() => {
       node = network.nodes[0];
       synapse = node.synapses[0];
-      startWeight = synapse.w = synapse.ltw = network.opts.signalFireThreshold;
+      startWeight = synapse.weight = synapse.ltw = network.opts.signalFireThreshold;
       signalFireDelay = 1000 / network.opts.signalSpeed;
       node.fire();
     });
@@ -70,40 +70,15 @@ describe('NeuralNetwork', () => {
 
     it('reinforces learning', (done) => {
       setTimeout(() => {
-        console.log(1, synapse, startWeight);
-        assert.equal(round(synapse.w), startWeight);
-        network.learn(1, true);
-        console.log(2, synapse, startWeight);
-        assert.equal(synapse.w > startWeight, true);
-        // network.unlearn(1, true);
-        // assert.equal(round(synapse.w), startWeight);
-        // network.unlearn(1, true);
-        // assert.equal(synapse.w < startWeight, true);
+        assert.equal(synapse.weight, startWeight);
+        network.learn();
+        assert.equal(synapse.weight > startWeight, true);
+        network.unlearn();
+        network.unlearn();
+        assert.equal(synapse.weight < startWeight, true);
         done();
-      }, signalFireDelay);
+      }, signalFireDelay * 1.5);
     });
-
-    // it('reinforces learning by the LEARNING_RATE', (done) => {
-    //   setTimeout(() => {
-    //     network.learn(1, true);
-    //     assert.equal(round(synapse.w), round(startWeight + network.opts.learningRate));
-    //     network.unlearn(1, true);
-    //     network.unlearn(1, true);
-    //     assert.equal(round(synapse.w), round(startWeight - network.opts.learningRate));
-    //     done();
-    //   }, signalFireDelay);
-    // });
-
-    // it('reinforces learning proportionally over the LEARNING_PERIOD', (done) => {
-    //   setTimeout(() => {
-    //     network.learn(1, true);
-    //     assert.equal(round(synapse.w), round(startWeight + network.opts.learningRate * 99/100));
-    //     network.unlearn(1, true);
-    //     network.unlearn(1, true);
-    //     assert.equal(round(synapse.w), round(startWeight - network.opts.learningRate * 99/100));
-    //     done();
-    //   }, signalFireDelay + network.opts.learningPeriod / 100);
-    // });
 
   });
 
@@ -116,7 +91,7 @@ describe('Neuron', () => {
 
   beforeEach(() => {
     network = new NeuralNetwork(100);
-    neuron = new Neuron(0, [], network.opts);
+    neuron = new Neuron(0, network.opts);
   });
 
   it('is defined', () => {
