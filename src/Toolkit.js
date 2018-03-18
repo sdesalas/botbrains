@@ -74,7 +74,7 @@ class Toolkit {
 
   static checkUpdate(socket, hash) {
     // Send event, but only if the network has changed
-    console.log(`Checking hash ${hash} vs lastHash ${this.lastHash} = ${(!this.lastHash || this.lastHash !== hash) ? 'UPDATE!!' : ''}`);
+    //console.log(`Checking hash ${hash} vs lastHash ${this.lastHash} = ${(!this.lastHash || this.lastHash !== hash) ? 'UPDATE!!' : ''}`);
     if (!this.lastHash || this.lastHash !== hash) {
       this.lastHash = hash;
       socket.emit('update', this.network.export());
