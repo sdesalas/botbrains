@@ -20,6 +20,14 @@
     #stats dl { position: relative; display: block; height: 13px; width: 100%; background: rgba(120, 120, 120, 0.3); margin: 0 0 10px; }
     #stats dd { position: absolute; width: 0%; height: 13px; background: #3f6674; margin: 0; }
     #stats dt { position: absolute; font-size: 10px; padding: 0 3px; }
+    #stats > button { background: white; cursor: pointer; position: absolute; color: black; font-weight: bold; border: 1px solid white; border-radius: 2px; margin-bottom: 5px; }
+    #stats > button:hover {  }
+    #stats > button.close-dropdown { border: 2px solid transparent; z-index: 2; left: 135px; background: transparent; }
+    #stats #dropdown { background: white; border-radius: 3px; position: absolute; z-index: 1; width: 140px;}
+    #stats #dropdown button { display: block; cursor: pointer; width: 100%; padding: 8px 10px; font-weight: bold; text-align: left; font-size: 10px; background: transparent; border:0; border-radius: 3px; border-bottom: 1px solid #eee;}
+    #stats #dropdown button:hover { background: #eee; }
+    #stats #dropdown input[type=file] { width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; position: absolute; z-index: -1; }
+    #stats #dropdown label[for=file] { cursor: pointer; padding: 8px 40px 8px 0; }
     #info { width: 100%; position: absolute; color: white; bottom: 0; }
     #info dl { display: block; float: left; width: 16%; text-align: center;}
     #info dd { display: block; font-size: 14pt; font-weight: bold; opacity: 0.8; margin: 0; }
@@ -33,6 +41,9 @@
     @media screen and (max-width: 480px) {
       #stats { width: 80px; }
       #stats dt { font-size: 8px; }
+      #stats button.close-dropdown { left: 76px; }
+      #stats #dropdown { width: 80px; }
+      #stats #dropdown label[for=file] { padding-right: 10px; }
       #info dd { font-size: 9pt; }
       #info dt { font-size: 6pt; }
       #left { left: 20px; } #right { right: 20px; }
@@ -62,6 +73,12 @@
         <dd :style="{ width: mem + '%' }">&nbsp;</dd>
         <dt>MEM</dt>
       </dl>
+      <button v-on:click="dropdown=!dropdown"><i class="fa fa-bars"></i></button>
+      <button v-on:click="dropdown=!dropdown" v-show="dropdown" class="close-dropdown"><i class="fa fa-times"></i></button>
+      <div id="dropdown" v-show="dropdown">
+        <button v-on:click="save" title="Save"><i class="fa fa-save fa-lg"></i> Save</button>
+        <button title="Load"><label for="file"><i class="fa fa-folder-open fa-lg"></i> Load</label><input id="file" type="file" name="file" v-on:change="load" /></button>
+      </div>
     </section>
     <section id="closeup" v-show="closeup.display">
       <div><label>Neuron # {{closeup.neuron}}</label> <span v-on:click="closeup.display = false">x</span></div>
@@ -116,21 +133,43 @@
         strength: '--%',
         inputs: '-',
         outputs: '-',
+        dropdown: false,
         closeup: {
           display: false,
           neuron: 0,
           synapses: [{ target: 0, weight: 0}]
         }
       },
-      methods: {},
+      methods: {
+        save: function() { 
+          var element = document.createElement('a');
+          element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(network.export())));
+          element.setAttribute('download', 'botbrains.json');
+          element.style.display = 'none';
+          document.body.appendChild(element);
+          element.click();
+          document.body.removeChild(element);
+          setTimeout(() => this.dropdown = false, 100);
+        },
+        load: function() {
+          var reader = new FileReader();
+          reader.onload = function(e) {
+            if (e.target.readyState != 2) return;
+            if (e.target.error) return alert('Error while reading file');
+            socket.emit('upload', e.target.result);
+          }
+          setTimeout(() => this.dropdown = false, 100);
+          reader.readAsText(file.files[0]);
+        }
+      },
       mounted: function() {
         socket.on('connection', data => {
           console.log('connection', data);
           if (data) {
             network = new botbrain.NeuralNetwork(data); 
             this.signalRecovery = 5000 / network.opts.signalSpeed;
-            this.updateNetwork();
             this.visualise(data);
+            this.updateNetwork();
           }
           window.addEventListener('resize', () => location.href = location.href);
           window.onbeforeunload = function() { socket.disconnect(); };
@@ -190,6 +229,8 @@
             line.visible = Math.abs(s.weight) > 0.05;
           });
         }
+        // Update button
+
         // Update measurements
         this.nodes = network.nodes.length;
         this.synapses = network.synapses.length;

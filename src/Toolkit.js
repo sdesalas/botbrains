@@ -39,13 +39,9 @@ class Toolkit {
     let clientCount = 0;
     console.log(`connection. clients: ${++clientCount}`);
     // Track neuron change reactions, using 'volatile' mode
-    this.network.on('fire', (id, p, by) => {
-      if (cpuLoad > 0.8) {
-        socket.volatile.emit('fire', id, p, by);
-      }
-      else {
-        socket.emit('fire', id, p, by);
-      }
+    this.network.on('fire', (id) => {
+      if (cpuLoad < 0.8) socket.emit('fire', id);
+      else socket.volatile.emit('fire', id);
     });
     // Handle incoming events
     ['learn', 'unlearn'].forEach(event => {
@@ -60,6 +56,8 @@ class Toolkit {
       clearInterval(statsInterval);
       clearInterval(updateInterval);
     });
+    // Load data
+    socket.on('upload', data => console.log({data}));
   }
 
   static handle(socket, event, data) {
