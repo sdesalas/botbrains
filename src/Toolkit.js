@@ -38,9 +38,9 @@ class Toolkit {
     // Track connected clients
     let clientCount = 0;
     console.log(`connection. clients: ${++clientCount}`);
-    // Track neuron change reactions, using 'volatile' mode
+    // Track neuron change reactions, using 'volatile' mode if needed
     this.network.on('fire', (id) => {
-      if (cpuLoad < 0.8) socket.emit('fire', id);
+      if (cpuLoad < 0.8 && this.network.size < 600) socket.emit('fire', id);
       else socket.volatile.emit('fire', id);
     });
     // Handle incoming events

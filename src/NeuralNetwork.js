@@ -12,7 +12,7 @@ const DEFAULTS = {
   signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
   learningPeriod: 10 * 1000,  // milliseconds in the past on which learning applies
   learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
-  retentionRate: 0.1          // shift in retention of new memories to long term memory
+  retentionRate: 0.95         // % retention of long term memory during learning
 };
 
 
@@ -116,7 +116,7 @@ class NeuralNetwork extends EventEmitter {
     for(const k in this.outputs) { outputs[k] = this.outputs[k].map(n => n.id); }
     return {
       nodes: this.nodes.length,
-      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: s.weight })),
+      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: Number(s.weight.toFixed(4)) })),
       opts: Object.assign({}, this.opts),
       inputs,
       outputs
@@ -211,8 +211,8 @@ class NeuralNetwork extends EventEmitter {
       const target = (s.ltw + stableLevel) / 2;
       const decay = (s.weight - target) * Math.abs(rate) * tendency;
       s.weight = s.weight - decay;
-      // long term weight shifts depending on retention rate
-      s.ltw = s.weight * opts.retentionRate + s.ltw * (1-opts.retentionRate);
+      // long term memories change depending on retention rate
+      s.ltw = s.ltw * opts.retentionRate + s.weight * 1-opts.retentionRate;
       total += decay;
     }
     return total;
