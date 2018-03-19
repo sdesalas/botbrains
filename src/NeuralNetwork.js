@@ -27,7 +27,7 @@ class NeuralNetwork extends EventEmitter {
      * or using serialized JSON
      * ```
      * new NeuralNetwork({ 
-     *  nodes: [ {id: 0}, {id: 1}, {id: 2}, {id: 3}, {id:4}, {id: 5}, {id: 6}],
+     *  nodes: 200,
      *  synapses: [
      *     {s: 0, t: 1, w: 0.41},
      *     {s: 1, t: 2, w: 0.02},
