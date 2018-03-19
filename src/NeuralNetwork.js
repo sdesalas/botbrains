@@ -212,7 +212,7 @@ class NeuralNetwork extends EventEmitter {
       const decay = (s.weight - target) * Math.abs(rate) * tendency;
       s.weight = s.weight - decay;
       // long term memories change depending on retention rate
-      s.ltw = s.ltw * opts.retentionRate + s.weight * 1-opts.retentionRate;
+      s.ltw = s.ltw * opts.retentionRate + s.weight * (1-opts.retentionRate);
       total += decay;
     }
     return total;

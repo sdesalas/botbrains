@@ -474,7 +474,7 @@ class NeuralNetwork extends events {
      * or using serialized JSON
      * ```
      * new NeuralNetwork({ 
-     *  nodes: [ {id: 0}, {id: 1}, {id: 2}, {id: 3}, {id:4}, {id: 5}, {id: 6}],
+     *  nodes: 200,
      *  synapses: [
      *     {s: 0, t: 1, w: 0.41},
      *     {s: 1, t: 2, w: 0.02},
@@ -659,7 +659,7 @@ class NeuralNetwork extends events {
       const decay = (s.weight - target) * Math.abs(rate) * tendency;
       s.weight = s.weight - decay;
       // long term memories change depending on retention rate
-      s.ltw = s.ltw * opts.retentionRate + s.weight * 1-opts.retentionRate;
+      s.ltw = s.ltw * opts.retentionRate + s.weight * (1-opts.retentionRate);
       total += decay;
     }
     return total;
