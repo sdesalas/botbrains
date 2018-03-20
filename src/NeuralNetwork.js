@@ -116,7 +116,7 @@ class NeuralNetwork extends EventEmitter {
     for(const k in this.outputs) { outputs[k] = this.outputs[k].map(n => n.id); }
     return {
       nodes: this.nodes.length,
-      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: Number(s.weight.toFixed(4)) })),
+      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: Number(s.weight.toFixed(5)) })),
       opts: Object.assign({}, this.opts),
       inputs,
       outputs

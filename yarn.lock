@@ -2,19 +2,9 @@
 # yarn lockfile v1
 
 
-"3d-force-graph@git+https://github.com/sdesalas/3d-force-graph.git":
-  version "1.3.5"
-  resolved "git+https://github.com/sdesalas/3d-force-graph.git#d69e91229491e951f3e606ceae00818487fed34b"
-  dependencies:
-    d3-binarytree "^0.1"
-    d3-force-3d "^1.0"
-    d3-octree "^0.1"
-    ngraph.forcelayout "~0.1.2"
-    ngraph.forcelayout3d "~0.0.16"
-    ngraph.graph "~0.0.12"
-    qwest "^4.4"
-    swc "^0.2"
-    three "~0.84"
+"@sdesalas/3d-force-graph@^2.0.4":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@sdesalas/3d-force-graph/-/3d-force-graph-2.0.4.tgz#f3b8aaa2d86d0b18fb1da5c7cf582d6553cdc1c0"
 
 accepts@1.1.4:
   version "1.1.4"
@@ -166,41 +156,6 @@ currently-unhandled@^0.4.1:
   resolved "https://registry.yarnpkg.com/currently-unhandled/-/currently-unhandled-0.4.1.tgz#988df33feab191ef799a61369dd76c17adf957ea"
   dependencies:
     array-find-index "^1.0.1"
-
-d3-binarytree@^0.1, d3-binarytree@~0.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/d3-binarytree/-/d3-binarytree-0.1.1.tgz#eafca5611b1083c600b08a77c5f491b15b6bc7ea"
-
-d3-collection@1:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/d3-collection/-/d3-collection-1.0.3.tgz#00bdea94fbc1628d435abbae2f4dc2164e37dd34"
-
-d3-dispatch@1:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/d3-dispatch/-/d3-dispatch-1.0.3.tgz#46e1491eaa9b58c358fce5be4e8bed626e7871f8"
-
-d3-force-3d@^1.0:
-  version "1.0.7"
-  resolved "https://registry.yarnpkg.com/d3-force-3d/-/d3-force-3d-1.0.7.tgz#92b17f83f798472c52bc9f0d575b671e9ee5b7fc"
-  dependencies:
-    d3-binarytree "~0.1"
-    d3-collection "1"
-    d3-dispatch "1"
-    d3-octree "~0.1"
-    d3-quadtree "1"
-    d3-timer "1"
-
-d3-octree@^0.1, d3-octree@~0.1:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/d3-octree/-/d3-octree-0.1.2.tgz#37bf919df79e661eda5865921eb6ca7f03897fcc"
-
-d3-quadtree@1:
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/d3-quadtree/-/d3-quadtree-1.0.3.tgz#ac7987e3e23fe805a990f28e1b50d38fcb822438"
-
-d3-timer@1:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/d3-timer/-/d3-timer-1.0.5.tgz#b266d476c71b0d269e7ac5f352b410a3b6fe6ef0"
 
 debug@0.7.4:
   version "0.7.4"
@@ -428,10 +383,6 @@ inherits@2:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.3.tgz#633c2c83e3da42a502f52466022480f4208261de"
 
-ip@^1.1.5:
-  version "1.1.5"
-  resolved "https://registry.yarnpkg.com/ip/-/ip-1.1.5.tgz#bdded70114290828c0a039e72ef25f5aaec4354a"
-
 is-arrayish@^0.2.1:
   version "0.2.1"
   resolved "https://registry.yarnpkg.com/is-arrayish/-/is-arrayish-0.2.1.tgz#77c99840527aa8ecb1a8ba697b80645a7a926a9d"
@@ -511,10 +462,6 @@ isobject@^2.0.0:
   resolved "https://registry.yarnpkg.com/isobject/-/isobject-2.1.0.tgz#f065561096a3f1da2ef46272f815c840d87e0c89"
   dependencies:
     isarray "1.0.0"
-
-jquery-param@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/jquery-param/-/jquery-param-0.1.2.tgz#17b1871fd7907e03706464bb6f66485b9b9af293"
 
 json3@3.2.6:
   version "3.2.6"
@@ -707,97 +654,6 @@ negotiator@0.4.9:
   version "0.4.9"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.4.9.tgz#92e46b6db53c7e421ed64a2bc94f08be7630df3f"
 
-ngraph.events@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/ngraph.events/-/ngraph.events-0.0.3.tgz#38f55316f3d207ad631ff94f6622ca8f2c0e87d0"
-
-ngraph.expose@0.0.0:
-  version "0.0.0"
-  resolved "https://registry.yarnpkg.com/ngraph.expose/-/ngraph.expose-0.0.0.tgz#746c34903a3848c45d033b14bc64619ea85fe5aa"
-
-ngraph.forcelayout3d@~0.0.16:
-  version "0.0.16"
-  resolved "https://registry.yarnpkg.com/ngraph.forcelayout3d/-/ngraph.forcelayout3d-0.0.16.tgz#ce9d9df5e1269893ce7453eeb8fb53c18960a2c1"
-  dependencies:
-    ngraph.expose "0.0.0"
-    ngraph.forcelayout "0.0.22"
-    ngraph.merge "0.0.1"
-    ngraph.physics.primitives "0.0.7"
-    ngraph.quadtreebh3d "0.0.3"
-    ngraph.random "0.0.1"
-
-ngraph.forcelayout@0.0.22:
-  version "0.0.22"
-  resolved "https://registry.yarnpkg.com/ngraph.forcelayout/-/ngraph.forcelayout-0.0.22.tgz#dac6bee4f2410b827a51f33e3a76d30d990649e7"
-  dependencies:
-    ngraph.events "0.0.3"
-    ngraph.physics.simulator "0.0.12"
-
-ngraph.forcelayout@~0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/ngraph.forcelayout/-/ngraph.forcelayout-0.1.2.tgz#3c2e1227f29148bab29fc58bc1e83749f61d4bc5"
-  dependencies:
-    ngraph.events "0.0.3"
-    ngraph.physics.simulator "^0.1.1"
-
-ngraph.graph@~0.0.12:
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/ngraph.graph/-/ngraph.graph-0.0.12.tgz#95ac777da567d09653d4af3badea5bf918f5bb2c"
-  dependencies:
-    ngraph.events "0.0.3"
-
-ngraph.merge@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/ngraph.merge/-/ngraph.merge-0.0.1.tgz#e4e80ce37581a3c96b17d545e3a43c85434b9025"
-
-ngraph.physics.primitives@0.0.7:
-  version "0.0.7"
-  resolved "https://registry.yarnpkg.com/ngraph.physics.primitives/-/ngraph.physics.primitives-0.0.7.tgz#5dc9e179ba1f92e6dec774b01cd68914120b795b"
-
-ngraph.physics.simulator@0.0.12:
-  version "0.0.12"
-  resolved "https://registry.yarnpkg.com/ngraph.physics.simulator/-/ngraph.physics.simulator-0.0.12.tgz#24c859c440dea36cd5db205ba80a16f121174279"
-  dependencies:
-    ngraph.events "0.0.3"
-    ngraph.expose "0.0.0"
-    ngraph.merge "0.0.1"
-    ngraph.physics.primitives "0.0.7"
-    ngraph.quadtreebh "0.0.3"
-    ngraph.random "0.0.1"
-
-ngraph.physics.simulator@^0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/ngraph.physics.simulator/-/ngraph.physics.simulator-0.1.1.tgz#8794665004d025b9e4232115fceffd97bfac08ad"
-  dependencies:
-    ngraph.events "0.0.3"
-    ngraph.expose "0.0.0"
-    ngraph.merge "0.0.1"
-    ngraph.physics.primitives "0.0.7"
-    ngraph.quadtreebh "0.0.4"
-    ngraph.random "0.0.1"
-
-ngraph.quadtreebh3d@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/ngraph.quadtreebh3d/-/ngraph.quadtreebh3d-0.0.3.tgz#7b2b36bd779feb6467cfb774ee59cf93b8b756a8"
-  dependencies:
-    ngraph.random "0.0.1"
-
-ngraph.quadtreebh@0.0.3:
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/ngraph.quadtreebh/-/ngraph.quadtreebh-0.0.3.tgz#9aee2a0931b19780d34ad83616e96a2536751295"
-  dependencies:
-    ngraph.random "0.0.1"
-
-ngraph.quadtreebh@0.0.4:
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/ngraph.quadtreebh/-/ngraph.quadtreebh-0.0.4.tgz#c700d44e6e4af07b6d05001ba3987ff5e2dcd62c"
-  dependencies:
-    ngraph.random "0.0.1"
-
-ngraph.random@0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/ngraph.random/-/ngraph.random-0.0.1.tgz#c008e2ebbfdffaf17ed10e4bbc913e567166bcf8"
-
 node-static@^0.7.9:
   version "0.7.9"
   resolved "https://registry.yarnpkg.com/node-static/-/node-static-0.7.9.tgz#9bb69fce2281f7ae3cd1fb983e9ea0ec0cd9fecb"
@@ -878,6 +734,10 @@ os-tmpdir@^1.0.0:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/os-tmpdir/-/os-tmpdir-1.0.2.tgz#bbe67406c79aa85c5cfec766fe5734555dfa1274"
 
+os-utils@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/os-utils/-/os-utils-0.0.14.tgz#29e511697b1982b8c627722175fe39797ef64156"
+
 parse-glob@^3.0.4:
   version "3.0.4"
   resolved "https://registry.yarnpkg.com/parse-glob/-/parse-glob-3.0.4.tgz#b2c376cfb11f35513badd173ef0bb6e3a388391c"
@@ -947,20 +807,9 @@ pinkie@^2.0.0:
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/pinkie/-/pinkie-2.0.4.tgz#72556b80cfa0d48a974e80e77248e80ed4f7f870"
 
-pinkyswear@^2.2.2:
-  version "2.2.3"
-  resolved "https://registry.yarnpkg.com/pinkyswear/-/pinkyswear-2.2.3.tgz#e589b72c268a09d0e46458861d6b8ccc5c921a3b"
-
 preserve@^0.2.0:
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/preserve/-/preserve-0.2.0.tgz#815ed1f6ebc65926f865b310c0713bcb3315ce4b"
-
-qwest@^4.4:
-  version "4.4.6"
-  resolved "https://registry.yarnpkg.com/qwest/-/qwest-4.4.6.tgz#bdaa76a8b19ac5ee057f7626ba6bdc799570ae13"
-  dependencies:
-    jquery-param "^0.1.2"
-    pinkyswear "^2.2.2"
 
 randomatic@^1.1.3:
   version "1.1.6"
@@ -1162,10 +1011,6 @@ supports-color@3.1.2:
   dependencies:
     has-flag "^1.0.0"
 
-swc@^0.2:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/swc/-/swc-0.2.0.tgz#79abba7bea6cd566edf2c930b71538dd274ed050"
-
 temp-write@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/temp-write/-/temp-write-2.1.0.tgz#59890918e0ef09d548aaa342f4bd3409d8404e96"
@@ -1176,10 +1021,6 @@ temp-write@^2.1.0:
     pify "^2.2.0"
     pinkie-promise "^2.0.0"
     uuid "^2.0.1"
-
-three@~0.84:
-  version "0.84.0"
-  resolved "https://registry.yarnpkg.com/three/-/three-0.84.0.tgz#95be85a55a0fa002aa625ed559130957dcffd918"
 
 to-array@0.1.4:
   version "0.1.4"

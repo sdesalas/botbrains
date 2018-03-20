@@ -49,7 +49,7 @@ class Toolkit {
     });
     // Polling to keep client updated of the state of the network
     const statsInterval = setInterval(() => this.getStats(stats => socket.emit('stats', stats)), 200);
-    const updateInterval = setInterval(() => this.checkUpdate(socket, this.network.hash), 1000);
+    const updateInterval = setInterval(() => this.checkUpdate(socket, this.network.hash), 500);
     // Disconnect
     socket.on('disconnect', () => {
       console.log(`disconnect. clients: ${--clientCount}`);
@@ -77,7 +77,7 @@ class Toolkit {
     //console.log(`Checking hash ${hash} vs lastHash ${this.lastHash} = ${(!this.lastHash || this.lastHash !== hash) ? 'UPDATE!!' : ''}`);
     if (!this.lastHash || this.lastHash !== hash) {
       this.lastHash = hash;
-      socket.emit('update', this.network.export());
+      socket.emit('update', Int16Array.from(this.network.synapses, s => Math.floor(s.weight * 32767)));
     }
   }
 

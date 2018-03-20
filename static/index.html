@@ -177,11 +177,10 @@
 
         socket.on('fire', (id, p, by) => this.fire(id, p, by));
         socket.on('stats', stats => this.updateStats(stats));
-        socket.on('update', data => {
-          console.log('update', data);
-          if (data) {
-            network = new botbrain.NeuralNetwork(data);
-            this.signalRecovery = 5000 / network.opts.signalSpeed;
+        socket.on('update', synapses => {
+          console.log('update', synapses);
+          if (synapses) {
+            network.synapses.forEach((s, i) => s.weight = synapses[i] / 32767) // Int16Array
             this.updateNetwork();
           }
         });
