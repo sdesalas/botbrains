@@ -142,13 +142,15 @@
       },
       methods: {
         save: function() { 
-          var element = document.createElement('a');
-          element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(network.export())));
-          element.setAttribute('download', 'botbrains.json');
-          element.style.display = 'none';
-          document.body.appendChild(element);
-          element.click();
-          document.body.removeChild(element);
+          socket.emit('save', (data) => {
+            var element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(JSON.stringify(data)));
+            element.setAttribute('download', 'botbrains.json');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+          });
           setTimeout(() => this.dropdown = false, 100);
         },
         load: function() {
@@ -156,7 +158,7 @@
           reader.onload = function(e) {
             if (e.target.readyState != 2) return;
             if (e.target.error) return alert('Error while reading file');
-            socket.emit('upload', e.target.result);
+            socket.emit('load', e.target.result);
           }
           setTimeout(() => this.dropdown = false, 100);
           reader.readAsText(file.files[0]);
@@ -180,7 +182,7 @@
         socket.on('update', synapses => {
           console.log('update', synapses);
           if (synapses) {
-            network.synapses.forEach((s, i) => s.weight = synapses[i] / 32767) // Int16Array
+            network.synapses.forEach((s, i) => s.weight = synapses[i] / 127) // Int8Array
             this.updateNetwork();
           }
         });
