@@ -223,7 +223,7 @@
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
             const line = lines[i];
-            line.material.opacity = Math.abs(s.weight);
+            line.material.opacity = Math.abs(s.weight * 0.7); // max 70%
             line.material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
             line.visible = Math.abs(s.weight) > 0.05;
           });
