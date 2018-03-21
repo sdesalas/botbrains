@@ -157,8 +157,9 @@ class NeuralNetwork extends EventEmitter {
     if (rate > 0) {
       // If the feedback was positive just spread difference
       // evenly over all synapses
+      const diffPerSynapse = diff/count;
       for (let i = 0; i < count; i++) {
-        synapses[i].weight = Utils.constrain(synapses[i].weight - diff/count, -0.5, 1);
+        synapses[i].weight = Utils.constrain(synapses[i].weight - diffPerSynapse, -0.5, 1);
       }
     } else {
       // Otherwise when something bad has happens, we assume
@@ -205,7 +206,7 @@ class NeuralNetwork extends EventEmitter {
     const tendency = (this.strength + opts.learningRate) / 2;
     const stableLevel = opts.signalFireThreshold / opts.connectionsPerNeuron;
     let total = 0;
-    for (let i = 0; i < this.synapses.length; i++) {
+    for (let i = 0, n = this.synapses.length; i < n; i++) {
       const s = this.synapses[i];
       // short term weight decays fast towards the average of long term and stable levels
       const target = (s.ltw + stableLevel) / 2;
@@ -227,13 +228,14 @@ class NeuralNetwork extends EventEmitter {
   potentiate(rate, cutoff) {
     const opts = this.opts;
     const learningPeriod = opts.learningPeriod;
+    const learningRate = opts.learningRate;
     let total = 0;
-    for (let i = 0; i < this.synapses.length; i++) {
+    for (let i = 0, n = this.synapses.length; i < n; i++) {
       const s = this.synapses[i];
       const recency = s.fired - cutoff;
       if (recency > 0) {
         // Synapse potentiation applies to both excitatory and inhibitory connections
-        let potentiation = (s.weight > 0 ? 1 : -1) * (recency / learningPeriod) * (rate * opts.learningRate);
+        let potentiation = (s.weight > 0 ? 1 : -1) * (recency / learningPeriod) * (rate * learningRate);
         // Make sure weight is between -0.5 and 1
         // Allow NEGATIVE weighing as real neurons do,
         // inhibiting onward connections in some cases.
@@ -432,10 +434,10 @@ class NeuralNetwork extends EventEmitter {
   /** Percentage of active synapses in network */
   get strength() {
     const synapses = this.synapses;
+    const threshold = this.opts.signalFireThreshold;
     let active = 0;
-    for (let i = 0; i < synapses.length; i++) {
-      const s = synapses[i];
-      if (s.weight > this.opts.signalFireThreshold) {
+    for (let i = 0, n = synapses.length; i < n; i++) {
+      if (synapses[i].weight > threshold) {
         active++;
       }
     }
@@ -446,7 +448,7 @@ class NeuralNetwork extends EventEmitter {
   get weight() {
     const synapses = this.synapses;
     let weight = 0;
-    for (let i = 0; i < synapses.length; i++) {
+    for (let i = 0, n = synapses.length; i < n; i++) {
       weight += synapses[i].weight;
     }
     return weight / synapses.length;
@@ -454,7 +456,12 @@ class NeuralNetwork extends EventEmitter {
 
   /** Network signature - used to detect changes */
   get hash() {
-    return Math.floor(this.synapses.reduce((hash, s, i) => hash + s.weight * (i << 10), 0)); 
+    const synapses = this.synapses;
+    let hash = 0;
+    for (let i = 0, n = synapses.length; i < n; i++) {
+      hash = hash + synapses[i].weight * (i << 10);
+    }
+    return Math.floor(hash); 
   }
 }
 
