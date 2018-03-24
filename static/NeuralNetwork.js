@@ -604,9 +604,15 @@ class NeuralNetwork extends events {
     if (rate > 0) {
       // If the feedback was positive just spread difference
       // evenly over all synapses
-      const diffPerSynapse = diff/count;
+      let diffPerSynapse = diff/count;
       for (let i = 0; i < count; i++) {
-        synapses[i].weight = Utils_1.constrain(synapses[i].weight - diffPerSynapse, -0.5, 1);
+        const weight = synapses[i].weight - diffPerSynapse;
+        const constrained = Utils_1.constrain(weight, -0.5, 1);
+        synapses[i].weight = constrained;
+        if (constrained !== weight) {
+          // Make sure overall network weight doesnt shift because of constrained weigth
+          diffPerSynapse -= (weight-constrained) / (count-i);
+        }
       }
     } else {
       // Otherwise when something bad has happens, we assume

@@ -180,7 +180,6 @@
         socket.on('fire', (id, p, by) => this.fire(id, p, by));
         socket.on('stats', stats => this.updateStats(stats));
         socket.on('update', synapses => {
-          console.log('update', synapses);
           if (synapses) {
             network.synapses.forEach((s, i) => s.weight = synapses[i] / 127) // Int8Array
             this.updateNetwork();
@@ -225,9 +224,9 @@
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
             const line = lines[i];
-            line.material.opacity = Math.abs(s.weight * 0.7); // max 70%
+            line.material.opacity = Math.abs(s.weight * 0.5); // max 50%
             line.material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
-            line.visible = Math.abs(s.weight) > 0.05;
+            line.visible = Math.abs(s.weight) > 0.08; // Min visible is 8%
           });
         }
         // Update button
@@ -253,14 +252,7 @@
       //console.log('Firing ' + id + ' with potential ' + p + ' by ' + by);
       const node = graphData && graphData.nodes && graphData.nodes[id];
       if (node && node.__sphere) {
-        let material = node.__sphere.material;
-        let oldColor = material.color.getHex();
-        material.color.setHex(0xffffff);
-        material.opacity = 1;
-        setTimeout(() => {
-          material.color.setHex(oldColor);
-          material.opacity = 0.6;
-        }, this.signalRecovery);
+        node.__sphere.highlight(this.signalRecovery);
       }
     };
 
