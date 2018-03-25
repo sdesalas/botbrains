@@ -57,7 +57,7 @@ class Toolkit {
       clearInterval(updateInterval);
     });
     // Load/Save data
-    socket.on('load', data => console.log({data}));
+    socket.on('load', data => socket.emit('reload', this.network.import(data).export()));
     socket.on('save', fn => fn(this.network.export()));
   }
 

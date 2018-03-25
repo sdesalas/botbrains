@@ -94,6 +94,7 @@ class NeuralNetwork extends EventEmitter {
       });
       this.synapses.push(...neuron.synapses);
     });
+    return this;
   }
 
   /**
@@ -101,6 +102,7 @@ class NeuralNetwork extends EventEmitter {
    * @param {Object} network 
    */
   import(network) {
+    this.synapses = [];
     this.nodes = new Array(network.nodes).fill().map((n, i) => new Neuron(i, network.opts));
     network.synapses.forEach(s => this.nodes[s.s].synapses.push({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
     Object.keys(network.inputs || {}).forEach(k => {
@@ -114,12 +116,12 @@ class NeuralNetwork extends EventEmitter {
     Object.keys(network.outputs || {}).forEach(k => {
       if (k in this.outputs) { 
         // If array exists then maintain it (due to output observables)
-        this.outputs[k].splice(0, this.output[k].length, ...network.outputs[k]);
+        this.outputs[k].splice(0, this.outputs[k].length, ...network.outputs[k]);
       } else {
         this.outputs[k] = network.outputs[k].slice();
       }
     });
-    this.init(undefined, network.opts);
+    return this.init(undefined, network.opts);
   }
 
   /**

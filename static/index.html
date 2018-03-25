@@ -158,20 +158,27 @@
           reader.onload = function(e) {
             if (e.target.readyState != 2) return;
             if (e.target.error) return alert('Error while reading file');
-            socket.emit('load', e.target.result);
+            try {
+              socket.emit('load', JSON.parse(e.target.result));
+            } catch (e) {
+              alert('Error, this is not a valid file.');
+            }
           }
           setTimeout(() => this.dropdown = false, 100);
           reader.readAsText(file.files[0]);
+        },
+        init: function(data) {
+          network = new botbrain.NeuralNetwork(data); 
+          this.signalRecovery = 5000 / network.opts.signalSpeed;
+          this.visualise(data);
+          this.updateNetwork();
         }
       },
       mounted: function() {
         socket.on('connection', data => {
           console.log('connection', data);
           if (data) {
-            network = new botbrain.NeuralNetwork(data); 
-            this.signalRecovery = 5000 / network.opts.signalSpeed;
-            this.visualise(data);
-            this.updateNetwork();
+            this.init(data);
           }
           window.addEventListener('resize', () => location.href = location.href);
           window.onbeforeunload = function() { socket.disconnect(); };
@@ -185,7 +192,7 @@
             this.updateNetwork();
           }
         });
-
+        socker.on('reload', data => this.init(data));
       }
     });
 
