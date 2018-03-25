@@ -292,8 +292,8 @@ class NeuralNetwork extends EventEmitter {
     if (!nodes) {
       // Find starting/ending point and add nodes to site
       const pos = isOutput ? 
-        Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].map(n => n.id).concat(a)), this.size) - 2 :
-        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].map(n => n.id).concat(a)), 0) + 2;
+        Object.keys(location).reduce((a, k) => Math.min.apply(null, location[k].concat(a)), this.size) - 2 :
+        Object.keys(location).reduce((a, k) => Math.max.apply(null, location[k].concat(a)), 0) + 2;
       nodes = new Array(bits || 1)
         .fill()
         .map((b, i) => isOutput ? pos - i : pos + i);
@@ -324,8 +324,8 @@ class NeuralNetwork extends EventEmitter {
     input.fn = input.fn || (data => {
       const ids = this.inputs[label];
       if (typeof data === 'number' && ids.length) {
-        // Distribute input signal across nodes
-        // multiplying signal so even small inputs can trigger a signal
+        // Distribute input across nodes by multiplying it
+        // so even small inputs can trigger a signal
         for (let i = 0, n = ids.length; i < n; i++) {
           this.nodes[ids[i]].fire(Utils.constrain(data*(i+1), 0, 1), label);
         }
@@ -352,16 +352,16 @@ class NeuralNetwork extends EventEmitter {
     }
     const observable = output.observable = new EventEmitter();
     this.on('fire', id => {
-      const index = output.indexOf(id);
-      if (index >= 0) {
+      if (output.indexOf(id) > -1 && !output.isfiring) {
         const nodes = output.map(id => this.nodes[id]);
-        // Calculate average potential across all nodes
+        // Add up potential across all nodes
         let potential = 0;
         for (let i = 0, count = nodes.length; i < count; i++) {
-          potential += nodes[i].potential/count;
+          potential += nodes[i].potential;
         }
         potential = Utils.constrain(potential, 0, 1);
         if (potential) {
+          output.isfiring = true;
           observable.emit('data', potential);
           const last = observable.lastValue;
           if (last !== potential) {
@@ -369,6 +369,7 @@ class NeuralNetwork extends EventEmitter {
             observable.emit('change', potential, last, diff);
           }
           observable.lastValue = potential;
+          setTimeout(() => output.isfiring = false, 10000 / this.opts.signalSpeed);
         }
       }
     });
