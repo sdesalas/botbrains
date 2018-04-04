@@ -1,0 +1,8 @@
+.gitignore
+.istanbul.yml
+.eslintrc
+.travis.yml
+.vscode/
+test/
+yarn.lock
+rollup.config.json

@@ -36,13 +36,16 @@ class Toolkit {
   static onConnection(socket) {
     socket.emit('connection', this.network && this.network.export());
     // Track connected clients
-    let clientCount = 0;
+    let clientCount = 0, networkSize = this.network.size;
     console.log(`connection. clients: ${++clientCount}`);
     // Track neuron change reactions, using 'volatile' mode if needed
-    this.network.on('fire', (id) => {
-      if (cpuLoad < 0.8 && this.network.size < 600) socket.emit('fire', id);
-      else socket.volatile.emit('fire', id);
-    });
+    setTimeout(() => this.network.on('fire', updateNeurons), this.network.size * 2);
+    function updateNeurons(id) {
+      if (cpuLoad >= 0.8 || networkSize >= 2000) 
+        socket.volatile.emit('fire', id);
+      else if (networkSize < 1000 || Math.random() > (networkSize - 1000) / 1200)
+        socket.emit('fire', id);
+    }
     // Handle incoming events
     ['learn', 'unlearn'].forEach(event => {
       socket.on(event, data => this.handle(socket, event, data));
@@ -55,9 +58,13 @@ class Toolkit {
       console.log(`disconnect. clients: ${--clientCount}`);
       clearInterval(statsInterval);
       clearInterval(updateInterval);
+      this.network.removeListener('fire', updateNeurons);
     });
     // Load/Save data
-    socket.on('load', data => socket.emit('reload', this.network.import(data).export()));
+    socket.on('load', data => {
+      socket.emit('reload', this.network.import(data).export());
+      networkSize = this.network.size;
+    });
     socket.on('save', fn => fn(this.network.export()));
   }
 

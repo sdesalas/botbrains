@@ -11,7 +11,7 @@
     nav { position: absolute; top: 40%; text-align: center; opacity: 0.5; }
     nav:hover { opacity: 1; }
     #app { display: none; }
-    #closeup { position: absolute; width: 140px; color: #999; background: rgba(80, 80, 80, 0.3); font-size: 10px; top: 10px; right: 10px; padding: 10px; }
+    #closeup { position: absolute; width: 140px; color: #aaa; background: rgba(25, 25, 25, 0.9); font-size: 10px; top: 10px; right: 10px; padding: 10px; }
     #closeup div { color: white; }
     #closeup div span { float: right; cursor: pointer; }
     #closeup ul { margin: 10px 0 0; padding: 0; }
@@ -169,7 +169,7 @@
         },
         init: function(data) {
           network = new botbrain.NeuralNetwork(data); 
-          this.signalRecovery = 5000 / network.opts.signalSpeed;
+          this.signalRecovery = 2000 / network.opts.signalSpeed;
           this.visualise(data);
           this.updateNetwork();
         }
@@ -192,7 +192,7 @@
             this.updateNetwork();
           }
         });
-        socker.on('reload', data => this.init(data));
+        socket.on('reload', data => this.init(data));
       }
     });
 
@@ -207,15 +207,14 @@
       console.log({ data, inputLabels, outputLabels });
       
       const Graph = new ForceGraph3D(document.getElementById('graph'), {
-        warmupTicks: 120,
+        warmupTicks: 100,
         cooldownTicks: 0,
-        sphereColor: 0x8fe7ff,
         //highlightItems: true,
         lineColor: lineColor,
         lineColorNeg: lineColorNeg,
         forceEngine: 'ngraph',
         graphData: { nodes, links },
-        nodeRelSize: 5,
+        nodeRelSize: 6,
         onReady: g => graphData = g.graphData,
         onClick: x => this.focus(x)
       });
@@ -231,13 +230,11 @@
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
             const line = lines[i];
-            line.material.opacity = Math.abs(s.weight * 0.5); // max 50%
+            line.material.opacity = Math.abs(s.weight * 0.3);
             line.material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
-            line.visible = Math.abs(s.weight) > 0.08; // Min visible is 8%
+            line.visible = Math.abs(s.weight) > 0.10; // Min visible is 10%
           });
         }
-        // Update button
-
         // Update measurements
         this.nodes = network.nodes.length;
         this.synapses = network.synapses.length;
@@ -265,7 +262,7 @@
 
     UI.focus = function(x) {
       console.log('UI.focus()', x);
-      if (x && x.object && x.object instanceof THREE.Mesh) {
+      if (x && x.object && x.object instanceof THREE.Sprite) {
         var node = graphData.nodes.find(n => x.object === n.__sphere);
         var synapses = network.nodes[node.id].synapses;
         clearTimeout(this.closeup.timeoutId); 
