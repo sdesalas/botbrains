@@ -47,7 +47,7 @@ class Toolkit {
         socket.emit('fire', id);
     }
     // Handle incoming events
-    ['learn', 'unlearn'].forEach(event => {
+    ['learn', 'unlearn', 'fire'].forEach(event => {
       socket.on(event, data => this.handle(socket, event, data));
     });
     // Polling to keep client updated of the state of the network
@@ -69,7 +69,7 @@ class Toolkit {
   }
 
   static handle(socket, event, data) {
-    if (this.verbose) console.log(`Toolkit.handle(socket, ${event})`);
+    if (this.verbose) console.log(`Toolkit.handle(socket, ${event}, ${JSON.stringify(data)})`);
     switch(event) {
       case 'learn':
         this.network.learn();
@@ -77,6 +77,8 @@ class Toolkit {
       case 'unlearn':
         this.network.unlearn();
         return;
+      case 'fire':
+        this.network.fire(data);
     }
   }
 

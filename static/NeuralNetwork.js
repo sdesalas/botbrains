@@ -455,8 +455,9 @@ var Utils_1 = Utils;
 const DEFAULTS = {
   shape: 'drum',              // shaper function name in NetworkShaper.js
   connectionsPerNeuron: 16,   // average synapses per neuron
+  signalFireThreshold: 0.3,   // potential needed to trigger onward neuron
   signalSpeed: 20,            // neurons per second
-  signalFireThreshold: 0.3,   // potential needed to trigger chain reaction
+  neuronRecovery: 1/5,        // neuron recovery as fraction of signal speed
   learningPeriod: 20 * 1000,  // milliseconds in the past on which learning applies
   learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
   retentionRate: 0.95         // % retention of long term memory during learning
@@ -971,7 +972,7 @@ class Neuron extends events {
       // target is defined by shaper function
       const target = shaperFn(size, index, count, s),
         // the more connections per neuron, the lower the weight per connection
-        weight = opts.signalFireThreshold / count;
+        weight = opts.signalFireThreshold / (count*3);
       
       if (target >= 0) {
         neuron.synapses.push({ source: index, target, weight, ltw: weight }); 
@@ -985,7 +986,7 @@ class Neuron extends events {
     if (this.isfiring) return false;
     const opts = this.opts;
     const signalFireDelay = 1000 / opts.signalSpeed;
-    const signalRecovery = signalFireDelay * 10;
+    const signalRecovery = signalFireDelay / opts.neuronRecovery;
     // Action potential is accumulated so that
     // certain patterns can trigger even weak synapses.
     // https://en.wikipedia.org/wiki/Excitatory_postsynaptic_potential

@@ -6,7 +6,7 @@
   "browser": "static/NeuralNetwork.js",
   "scripts": {
     "test": "mocha",
-    "copy": "ncp node_modules/@sdesalas/3d-force-graph/dist/3d-force-graph.min.js ./static/lib && ncp node_modules/socket.io-client/socket.io.js ./static/lib",
+    "copy": "cp node_modules/@sdesalas/3d-force-graph/dist/3d-force-graph.min.js ./static/lib && cp node_modules/@sdesalas/3d-force-graph/dist/3d-force-graph.js ./static/lib && cp node_modules/socket.io-client/socket.io.js ./static/lib",
     "build": "rollup -c && npm run copy",
     "serve": "node quickstart.js",
     "display": "opn http://localhost:8811 || true",
@@ -41,11 +41,10 @@
     "socket.io": "1.4.8"
   },
   "devDependencies": {
-    "@sdesalas/3d-force-graph": "^2.0.9",
+    "@sdesalas/3d-force-graph": "^2.0.10",
     "assert-fuzzy": "^1.0.0",
     "events": "^1.1.1",
     "mocha": "^3.4.2",
-    "ncp": "^2.0.0",
     "opn-cli": "^3.1.0",
     "rollup": "^0.41.6",
     "rollup-plugin-commonjs": "^8.0.2",

@@ -118,8 +118,8 @@
 
     var network;
     var graphData = {};
-    var lineColor = 0xccfffb;
-    var lineColorNeg = 0xff7575;
+    var lineColor = 0x566c6a;
+    var lineColorNeg = 0xff8585;
     var socket = io();
     var UI = new Vue({
       el: '#app',
@@ -216,7 +216,8 @@
         graphData: { nodes, links },
         nodeRelSize: 6,
         onReady: g => graphData = g.graphData,
-        onClick: x => this.focus(x)
+        onClick: (type, node) => type === 'node' && this.focus(node),
+        onDblClick: (type, node) => type === 'node' && socket.emit('fire', node.id)
       });
 
       console.log({ graphData: graphData, links: graphData.links });
@@ -230,9 +231,9 @@
           network.synapses.forEach((s, i) => {
             // Set both opacity and color (excitatory and inhibitory connections)
             const line = lines[i];
-            line.material.opacity = Math.abs(s.weight * 0.3);
+            line.material.opacity = Math.pow(s.weight, 2);
             line.material.color.setHex(s.weight > 0 ? lineColor : lineColorNeg);
-            line.visible = Math.abs(s.weight) > 0.10; // Min visible is 10%
+            line.visible = Math.abs(s.weight) > 0.20; // Min visible is 20%
           });
         }
         // Update measurements
@@ -260,10 +261,9 @@
       }
     };
 
-    UI.focus = function(x) {
-      console.log('UI.focus()', x);
-      if (x && x.object && x.object instanceof THREE.Sprite) {
-        var node = graphData.nodes.find(n => x.object === n.__sphere);
+    UI.focus = function(node) {
+      console.log('UI.focus()', node);
+      if (node && node.id) {
         var synapses = network.nodes[node.id].synapses;
         clearTimeout(this.closeup.timeoutId); 
         this.closeup = {
