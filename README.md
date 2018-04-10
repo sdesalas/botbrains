@@ -112,10 +112,11 @@ Generates a neural network.
     - `.shape`: Choice of 'drum', 'tube', 'ring', 'ball', 'sausage', 'snake', or any other in [NetworkShaper.js](src/NetworkShaper.js). Defaults to 'drum'.
     - `.shaper`: The [shaper function](#shaper-function) used for giving shape to the network. If available will ignore `.shape`.
     - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to `4`.
-    - `.signalSpeed`: Speed in neurons per second. Defaults to `20`.
     - `.signalFireThreshold`: Threshold (between 0 and 1) needed to trigger onward neurons. Defaults to `0.3`.
-    - `.learningRate`: Max increase/decrease to connection strength when learning. Defaults to `0.15`.
-    - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to `60000` ms.
+    - `.signalSpeed`: Speed in neurons per second. Defaults to `20`.
+    - `.neuronRecovery`: Neuron recovery as fraction of `signalSpeed`. Defaults to `1/5`.
+    - `.learningRate`: Max increase/decrease to connection strength when learning. Defaults to `0.05`.
+    - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to `20 * 1000` ms.
 
 For example, to create a network of 100 neurons using all default options:
 
