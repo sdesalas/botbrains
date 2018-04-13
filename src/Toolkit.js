@@ -87,7 +87,7 @@ class Toolkit {
     //console.log(`Checking hash ${hash} vs lastHash ${this.lastHash} = ${(!this.lastHash || this.lastHash !== hash) ? 'UPDATE!!' : ''}`);
     if (!this.lastHash || this.lastHash !== hash) {
       this.lastHash = hash;
-      socket.emit('update', Int16Array.from(this.network.synapses, s => Math.floor(s.weight * 127)));
+      socket.emit('update', Int8Array.from(this.network.synapses, s => Math.floor(s.weight * 127)));
     }
   }
 

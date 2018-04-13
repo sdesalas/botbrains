@@ -239,8 +239,8 @@
         // Update measurements
         this.nodes = network.nodes.length;
         this.synapses = network.synapses.length;
-        this.strength = (network.strength * 100).toFixed(1) + '%';
-        this.weight = (network.weight * 100).toFixed(1) + '%';
+        this.strength = (network.strength * 100).toFixed(2) + '%';
+        this.weight = (network.weight * 100).toFixed(2) + '%';
         this.inputs = Object.keys(network.inputs).length;
         this.outputs = Object.keys(network.outputs).length;
       }
