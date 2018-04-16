@@ -114,6 +114,7 @@ Generates a neural network.
     - `.connectionsPerNeuron`: Average synapses per neuron. Defaults to `4`.
     - `.signalFireThreshold`: Threshold (between 0 and 1) needed to trigger onward neurons. Defaults to `0.3`.
     - `.signalSpeed`: Speed in neurons per second. Defaults to `20`.
+    - `.startingWeight`: Starting weight per synapse. Defaults to `signalFireThreshold(/3 x connectionsPerNeuron)`.
     - `.neuronRecovery`: Neuron recovery as fraction of `signalSpeed`. Defaults to `1/5`.
     - `.learningRate`: Max increase/decrease to connection strength when learning. Defaults to `0.05`.
     - `.learningPeriod`: Milliseconds in the past on which learning applies. Defaults to `20 * 1000` ms.

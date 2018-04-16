@@ -16,7 +16,6 @@ const DEFAULTS = {
   retentionRate: 0.95         // % retention of long term memory during learning
 };
 
-
 class NeuralNetwork extends EventEmitter {
     
   /**
@@ -228,7 +227,7 @@ class NeuralNetwork extends EventEmitter {
   decay(rate) {
     const opts = this.opts;
     const tendency = (this.strength + opts.learningRate) / 2;
-    const stableLevel = opts.signalFireThreshold / opts.connectionsPerNeuron;
+    const stableLevel = opts.startingWeight || (opts.signalFireThreshold/opts.connectionsPerNeuron/3);
     let total = 0;
     for (let i = 0, n = this.synapses.length; i < n; i++) {
       const s = this.synapses[i];
@@ -325,10 +324,10 @@ class NeuralNetwork extends EventEmitter {
     input.fn = input.fn || (data => {
       const ids = this.inputs[label];
       if (typeof data === 'number' && ids.length) {
-        // Distribute input across nodes by multiplying it
-        // so even small inputs can trigger a signal
-        for (let i = 0, n = ids.length; i < n; i++) {
-          this.nodes[ids[i]].fire(Utils.constrain(data*(i+1), 0, 1), label);
+        // Distribute input across nodes
+        // so even small changes can modify pattern
+        for (let i = 0, n = ids.length, p = 1/ids.length; i < n; i++) {
+          this.nodes[ids[i]].fire(Utils.constrain(data*n - i, 0, 1), label);
         }
       }
     });
@@ -524,8 +523,7 @@ class Neuron extends EventEmitter {
     for (let s = 0; s < count; s++) {
       // target is defined by shaper function
       const target = shaperFn(size, index, count, s),
-        // the more connections per neuron, the lower the weight per connection
-        weight = opts.signalFireThreshold / (count*3);
+        weight = opts.startingWeight || (opts.signalFireThreshold/opts.connectionsPerNeuron/3);
       
       if (target >= 0) {
         neuron.synapses.push({ source: index, target, weight, ltw: weight }); 

@@ -27,7 +27,7 @@ class Toolkit {
       if (this.io) {
         this.io.disconnect() || this.io.close();
       }
-      this.io = io.listen(this.server, {'forceNew': true });
+      this.io = io.listen(this.server, { 'forceNew': true });
       this.io.sockets.on('connection', this.onConnection.bind(this));
     }
     return this.server;
