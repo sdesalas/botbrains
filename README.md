@@ -8,7 +8,7 @@ Its been built as part of an educational workshop on artificial learning specifi
 
 This material here is very basic and aimed more at communicating the core concept of a neural network through practice than dealing with all the theoretical stuff that is available out there.
 
-To read more about how and why this library was created see the article on [Asynchronous Neural Networks on my blog](http://desalasworks.com/article/asynchronous-neural-networks-in-javascript/).
+To read more about how and why this library was created see the article on [Asynchronous Neural Networks](http://desalasworks.com/article/asynchronous-neural-networks-in-javascript/) on my blog.
 
 ## Interact with your robot brains in 3D.
 
