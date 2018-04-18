@@ -239,8 +239,6 @@
         // Update measurements
         this.nodes = network.nodes.length;
         this.synapses = network.synapses.length;
-        this.strength = (network.strength * 100).toFixed(2) + '%';
-        this.weight = (network.weight * 100).toFixed(2) + '%';
         this.inputs = Object.keys(network.inputs).length;
         this.outputs = Object.keys(network.outputs).length;
       }
@@ -250,6 +248,8 @@
       if (stats) {
         this.cpu = Math.round(stats.cpu * 100);
         this.mem = Math.round(stats.mem * 100);
+        this.strength = (stats.strength * 100).toFixed(2) + '%';
+        this.weight = (stats.weight * 100).toFixed(2) + '%';
       }
     }
 

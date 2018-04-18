@@ -99,7 +99,9 @@ class Toolkit {
       cpuLoad = cpu;
       callback({
         cpu: Number(cpu.toFixed(2)),
-        mem: Number(mem.toFixed(2))
+        mem: Number(mem.toFixed(2)),
+        weight: this.network.weight,
+        strength: this.network.strength
       });
     });
   }

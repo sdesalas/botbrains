@@ -13,7 +13,7 @@ const DEFAULTS = {
   neuronRecovery: 1/5,        // neuron recovery as fraction of signal speed
   learningPeriod: 20 * 1000,  // milliseconds in the past on which learning applies
   learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
-  retentionRate: 0.95         // % retention of long term memory during learning
+  retentionRate: 0.99         // % retention of long term memory during learning
 };
 
 class NeuralNetwork extends EventEmitter {
@@ -218,25 +218,26 @@ class NeuralNetwork extends EventEmitter {
   }
 
   /**
-     * Forgetting is as important as remembering, otherwise we overload the network.
-     * This algorithm is adaptive, in other words, connections
-     * will decay significantly faster if there are too many of them.
+     * Forgetting is as important as remembering.
+     * We need to slowly store short-term memories as long-term
+     * And to decay long term even more slowly towards initial (stable) level.
      * @param {float} [rate=1] rate of decay, between 0 and 1 
      * @return {float} loss of weight by the network 
      */
   decay(rate) {
     const opts = this.opts;
-    const tendency = (this.strength + opts.learningRate) / 2;
+    const learningRate = opts.learningRate;
+    const retentionRate = opts.retentionRate;
     const stableLevel = opts.startingWeight || (opts.signalFireThreshold/opts.connectionsPerNeuron/3);
     let total = 0;
     for (let i = 0, n = this.synapses.length; i < n; i++) {
       const s = this.synapses[i];
-      // short term weight decays fast towards the average of long term and stable levels
-      const target = (s.ltw + stableLevel) / 2;
-      const decay = (s.weight - target) * Math.abs(rate) * tendency;
+      // short term weight decays towards long term weight and stable level
+      const target = s.ltw * 3/4 + stableLevel * 1/4;
+      const decay = (s.weight - target) * Math.abs(rate) * learningRate;
       s.weight = s.weight - decay;
       // long term memories change depending on retention rate
-      s.ltw = s.ltw * opts.retentionRate + s.weight * (1-opts.retentionRate);
+      s.ltw = s.ltw * retentionRate + s.weight * (1-retentionRate);
       total += decay;
     }
     return total;
