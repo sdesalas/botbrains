@@ -169,9 +169,7 @@
         },
         init: function(data) {
           network = new botbrain.NeuralNetwork(data); 
-          this.signalRecovery = 2000 / network.opts.signalSpeed / network.opts.neuronRecovery;
-          this.strength = (network.strength * 100).toFixed(2) + '%';
-          this.weight = (network.weight * 100).toFixed(2) + '%';
+          this.signalRecovery = 2000 / network.opts.signalSpeed;
           this.visualise(data);
           this.updateNetwork();
         }
