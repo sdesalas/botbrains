@@ -460,9 +460,8 @@ const DEFAULTS = {
   neuronRecovery: 1/5,        // neuron recovery as fraction of signal speed
   learningPeriod: 20 * 1000,  // milliseconds in the past on which learning applies
   learningRate: 0.05,         // max % increase/decrease to synapse strength when learning
-  retentionRate: 0.95         // % retention of long term memory during learning
+  retentionRate: 0.99         // % retention of long term memory during learning
 };
-
 
 class NeuralNetwork extends events {
     
@@ -666,25 +665,26 @@ class NeuralNetwork extends events {
   }
 
   /**
-     * Forgetting is as important as remembering, otherwise we overload the network.
-     * This algorithm is adaptive, in other words, connections
-     * will decay significantly faster if there are too many of them.
+     * Forgetting is as important as remembering.
+     * We need to slowly store short-term memories as long-term
+     * And to decay long term even more slowly towards initial (stable) level.
      * @param {float} [rate=1] rate of decay, between 0 and 1 
      * @return {float} loss of weight by the network 
      */
   decay(rate) {
     const opts = this.opts;
-    const tendency = (this.strength + opts.learningRate) / 2;
-    const stableLevel = opts.signalFireThreshold / opts.connectionsPerNeuron;
+    const learningRate = opts.learningRate;
+    const retentionRate = opts.retentionRate;
+    const stableLevel = opts.startingWeight || (opts.signalFireThreshold/opts.connectionsPerNeuron/3);
     let total = 0;
     for (let i = 0, n = this.synapses.length; i < n; i++) {
       const s = this.synapses[i];
-      // short term weight decays fast towards the average of long term and stable levels
-      const target = (s.ltw + stableLevel) / 2;
-      const decay = (s.weight - target) * Math.abs(rate) * tendency;
+      // short term weight decays towards long term weight and stable level
+      const target = s.ltw * 3/4 + stableLevel * 1/4;
+      const decay = (s.weight - target) * Math.abs(rate) * learningRate;
       s.weight = s.weight - decay;
       // long term memories change depending on retention rate
-      s.ltw = s.ltw * opts.retentionRate + s.weight * (1-opts.retentionRate);
+      s.ltw = s.ltw * retentionRate + s.weight * (1-retentionRate);
       total += decay;
     }
     return total;
@@ -772,10 +772,10 @@ class NeuralNetwork extends events {
     input.fn = input.fn || (data => {
       const ids = this.inputs[label];
       if (typeof data === 'number' && ids.length) {
-        // Distribute input across nodes by multiplying it
-        // so even small inputs can trigger a signal
-        for (let i = 0, n = ids.length; i < n; i++) {
-          this.nodes[ids[i]].fire(Utils_1.constrain(data*(i+1), 0, 1), label);
+        // Distribute input across nodes
+        // so even small changes can modify pattern
+        for (let i = 0, n = ids.length, p = 1/ids.length; i < n; i++) {
+          this.nodes[ids[i]].fire(Utils_1.constrain(data*n - i, 0, 1), label);
         }
       }
     });
@@ -971,8 +971,7 @@ class Neuron extends events {
     for (let s = 0; s < count; s++) {
       // target is defined by shaper function
       const target = shaperFn(size, index, count, s),
-        // the more connections per neuron, the lower the weight per connection
-        weight = opts.signalFireThreshold / (count*3);
+        weight = opts.startingWeight || (opts.signalFireThreshold/opts.connectionsPerNeuron/3);
       
       if (target >= 0) {
         neuron.synapses.push({ source: index, target, weight, ltw: weight }); 
