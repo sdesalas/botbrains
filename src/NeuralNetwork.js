@@ -37,7 +37,8 @@ class NeuralNetwork extends EventEmitter {
      *     {s: 4, t: 6, w: 0.92},
      *     {s: 4, t: 2, w: 0.41},
      *     {s: 5, t: 4, w: 0.63}
-     *   ]
+     *   ],
+     *  opts: { signalSpeed: 20 }
      * });
      * ```
      * @param {int|Object} size 
@@ -98,12 +99,18 @@ class NeuralNetwork extends EventEmitter {
   }
 
   /**
-   * Imports a JSON-serialized network object
-   * @param {Object} network 
+   * Imports a JSON-serialized network object. 
+   * @param {Object} network A network object obtained as result of calling `.export()` method
    */
   import(network) {
     this.synapses = [];
-    this.nodes = new Array(network.nodes).fill().map((n, i) => new Neuron(i, network.opts));
+    // Reduced network (normally for display purposes)
+    if (network.nodes instanceof Array && typeof network.opts.reducer === 'string') {
+      network.opts.reducer = new Function(network.opts.reducer);
+      this.nodes = network.nodes.map(id => new Neuron(id, network.opts));
+    } else {
+      this.nodes = new Array(network.nodes).fill().map((n, i) => new Neuron(i, network.opts));
+    };
     network.synapses.forEach(s => this.nodes[s.s].synapses.push({ source: s.s, target: s.t, weight: s.w, ltw: s.w }));
     Object.keys(network.inputs || {}).forEach(k => {
       if (k in this.inputs) {
@@ -125,19 +132,58 @@ class NeuralNetwork extends EventEmitter {
   }
 
   /**
-   * Exports network as serialized JSON, useful for cloning and saving to disk
+   * Exports network as serialized JSON, useful for cloning and saving to disk.
+   * Can be shrunk to allow displaying large networks.
+   * @param {Number} maxNodes Maximum nodes to export.
    */
-  export() {
+  export(maxNodes) {
     const inputs = {}, outputs = {};
-    for(const k in this.inputs) { inputs[k] = this.inputs[k].slice(); }
-    for(const k in this.outputs) { outputs[k] = this.outputs[k].slice(); }
+    const inputNodes = [], outputNodes = [];
+    const size = this.nodes.length;
+    for(const k in this.inputs) { inputs[k] = this.inputs[k].slice(); inputNodes.push(...inputs[k]); }
+    for(const k in this.outputs) { outputs[k] = this.outputs[k].slice(); outputNodes.push(...outputs[k]); }
+    if (typeof maxNodes !== 'number' || maxNodes <= size) {
+      // No limit? Return network as is
+      return {
+        nodes: this.nodes.length,
+        synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: Number(s.weight.toFixed(5)) })),
+        opts: Object.assign({ }, this.opts),
+        inputs,
+        outputs
+      };
+    }
+    // Do we have a limit? 
+    // Ok this gets a bit tricky, first work out reducer function for nodes being exported.
+    // const reducer = `(i, in, out) => in || out || ${
+    //                   (size - maxNodes > maxNodes) ? 
+    //                      ('i%' + (size / maxNodes).toFixed(0) + ' === 0') : 
+    //                      ('i%12 > ' + ((size - maxNodes) / size * 12).toFixed(0))}`;
+    // Then, work out all nodes we are exporting
+    const nodes = this.nodes.reduce((result, node, i) => {
+      if (reducer(i, inputNodes.includes(i), outputNodes.includes(i)) === true) {
+        result.push(node);
+      }
+      return result;
+    }, []);
+    // Next, we return only synapses whose source and target nodes are both in resultset.
+    const synapses = nodes.reduce((result, node, sid) => {
+      // Double loop, messy.. but no other way.
+      node.synapses.forEach(s => {
+        const tid = nodes.indexOf(s.target);
+        if (tid > -1) {
+          result.push({ s: sid, t: tid, w: Number(s.weight.toFixed(5)) });
+        }
+      });
+      return result;
+    }, []);
     return {
-      nodes: this.nodes.length,
-      synapses: this.synapses.map(s => ({ s: s.source.id, t: s.target.id, w: Number(s.weight.toFixed(5)) })),
-      opts: Object.assign({}, this.opts),
+      nodes: nodes.map(n => n.id),
+      synapses,
+      opts: Object.assign({ }, this.opts),
       inputs,
-      outputs
-    };
+      outputs,
+      reducer: reducer
+    }
   }
 
   /**
